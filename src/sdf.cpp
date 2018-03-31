@@ -30,11 +30,7 @@ sdf_t::distance(point_t p){
     float phi = phi_true / delta;
     
     // clamp to range [-1..1]
-    if (fabs(phi) > 1){
-        return phi / fabs(phi);
-    } else {
-        return phi;
-    }
+    return phi / max(1.0f, fabs(phi));
 }
 
 point_t

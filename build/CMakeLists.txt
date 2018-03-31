@@ -12,6 +12,15 @@ include_directories(${INCLUDE_DIR})
 
 set(SOURCES
     ../src/main.cpp
+
+    ../include/point.h
+    ../src/point.cpp
+ 
+    ../include/voxel.h
+    ../src/voxel.cpp
+
+    ../include/sdf.h
+    ../src/sdf.cpp
 )
 
 add_executable(fusion ${SOURCES})
