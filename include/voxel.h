@@ -2,8 +2,8 @@
 #define VOXEL_H
 
 struct min_params_t {
-    // step size of gradient descent
-    float alpha;
+    // learning rate
+    float eta;
 
     // relative weighting of killing condition
     float omega_k;
@@ -14,7 +14,7 @@ struct min_params_t {
     // killing condition purity
     float gamma;
 
-    // minimum size of quotient in level set energy
+    // prevention of division by zero in level set gradient
     float epsilon;
 
     // threshold for terminating registration
@@ -35,10 +35,10 @@ private:
     bool update(sdf_t * canon, min_params_t * ps);
 
     // energy functions used for gradient descent
-    point_t energy_gradient(point_t u, float omega_k, float omega_s, float gamma, float epsilon);
-    point_t data_gradient(sdf_t * canon, point_t u);
-    point_t killing_gradient(point_t u, float gamma);
-    point_t level_set_gradient(point_t u, float epsilon);
+    point_t energy_gradient(float omega_k, float omega_s, float gamma, float epsilon);
+    point_t data_gradient(sdf_t * canon);
+    point_t killing_gradient(float gamma);
+    point_t level_set_gradient(float epsilon);
 };
 
 #endif

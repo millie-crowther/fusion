@@ -37,3 +37,8 @@ point_t::operator-=(point_t o){
     y -= o.y;
     z -= o.z;
 }
+
+point_t
+point_t::operator-(point_t o){
+    return point_t(x - o.x, y - o.y, z - o.z);
+}

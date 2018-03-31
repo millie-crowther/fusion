@@ -9,9 +9,7 @@ voxel_t::voxel_t(sdf_t * sdf, point_t p){
 
 bool
 voxel_t::update(sdf_t * canon, min_params_t * ps){
-    point_t e = energy_gradient(canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
-    point_t update = ps->alpha() * e;
-    u -= update;
+    u -= ps->eta() * energy_gradient(canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
     return update.length() > ps->threshold;
 } 
 
@@ -37,7 +35,7 @@ point_t
 voxel_t::level_set_gradient(float epsilon){
     point_t g = sdf->distance_gradient(p + u);
 
-    float scale = (g.length() - 1) / std::max(g.length(), epsilon);
+    float scale = (g.length() - 1) / (g.length() + epsilon);
 
     return scale; 
 }
