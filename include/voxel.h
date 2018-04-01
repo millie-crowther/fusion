@@ -17,7 +17,7 @@ struct min_params_t {
     // prevention of division by zero in level set gradient
     float epsilon;
 
-    // threshold for terminating registration
+    // threshold for terminating registration in mm
     float threshold;
 };
 
