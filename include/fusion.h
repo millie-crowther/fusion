@@ -2,14 +2,22 @@
 #define FUSION_H
 
 #include "sdf.h"
+#include <string>
+#include <vector>
 
 class fusion_t {
 private:
-    sdf_t * canon;
+  //  sdf_t * canon;
 
-    sdf_t * get_next_sdf();
+    void load_filenames(std::vector<std::string> * fns);
+    sdf_t * get_sdf(std::string filename);
 
 public:
+    // constructors and destructors
+    fusion_t();
+    ~fusion_t();
+    
+    // main public method
     void fusion();
 };
 

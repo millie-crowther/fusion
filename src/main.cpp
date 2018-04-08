@@ -1,6 +1,7 @@
-#include <iostream>
+#include "fusion.h"
 
 int main(){
-    std::cout << "hello world!" << std::endl;
+    fusion_t f;
+    f.fusion();
     return 0;
 }

@@ -3,7 +3,7 @@
 
 #include <vector>
 
-#include "voxel.h"
+#include "min_params.h"
 #include "point.h"
 
 class sdf_t {
@@ -30,9 +30,6 @@ private:
 
     // depth map of frame
     float * depths;
-
-    // voxel grid
-    std::vector<voxel_t> voxels;
 };
 
 #endif

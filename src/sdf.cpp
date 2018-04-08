@@ -1,36 +1,25 @@
 #include "sdf.h"
 
+#include <algorithm>
 #include <cmath>
 
-sdf_t::sdf_t(int id, std::vector<std::vector<float>> * depths, float delta, point_t size, float l){
-    this->id = id;
+sdf_t::sdf_t(float * depths, float delta, point_t size, float l){
     this->depths = depths;
     this->delta = delta;
     this->size = size;
-    this->voxel_length = l;
+    this->l = l;
 }
 
 float
 sdf_t::distance(point_t p){
-    // TODO: apply transformation associated with voxel that p 
-    //       occupies before rest of function
-
-    int x = p.get_x();
-    int y = p.get_y();
-
-    // check on indices
-    if (x < 0 || y < 0 || x >= depths->size() || y >= depths->at(x).size()){
-        // TODO
-    }
-
     // true signed distance
-    float phi_true = depths->at(x).at(y) - p.get_z();
+    float phi_true = 1;// depths->at(x).at(y) - p.get_z();
     
     // divide by delta
     float phi = phi_true / delta;
     
     // clamp to range [-1..1]
-    return phi / max(1.0f, fabs(phi));
+    return phi / std::max(1.0f, std::abs(phi));
 }
 
 point_t

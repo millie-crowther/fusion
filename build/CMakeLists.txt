@@ -3,24 +3,21 @@ set (CMAKE_CXX_STANDARD 11)
 
 project(fusion)
 
-
 set(INCLUDE_DIR
     ../include
+    ../libpng
 )
 
 include_directories(${INCLUDE_DIR})
 
 set(SOURCES
-    ../src/main.cpp
-
-    ../include/point.h
     ../src/point.cpp
- 
-    ../include/voxel.h
-    ../src/voxel.cpp
-
-    ../include/sdf.h
     ../src/sdf.cpp
+    ../src/fusion.cpp
+    ../src/main.cpp
 )
 
 add_executable(fusion ${SOURCES})
+find_package(PNG REQUIRED)
+include_directories(${PNG_INCLUDE_DIR})
+target_link_libraries(fusion ${PNG_LIBRARY})
