@@ -13,6 +13,7 @@ set(SOURCES
     ../src/main.cpp
     ../src/point.cpp
     ../src/sdf.cpp
+    ../src/canonical_sdf.cpp
     ../src/fusion.cpp
 )
 

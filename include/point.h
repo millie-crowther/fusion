@@ -10,6 +10,7 @@ public:
     
     // operator overrides
     point_t operator*(float scale);
+    point_t operator/(float scale);
     point_t operator+(point_t other);
     point_t operator-(point_t other);
     void operator-=(point_t other);

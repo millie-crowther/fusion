@@ -63,6 +63,6 @@ fusion_t::fusion(){
  
     for (int i = 0; i < filenames.size(); i++){
         sdf_t * sdf = get_sdf(filenames[i]);
-        delete sdf;
+        canon.add_sdf(sdf);
     }
 }

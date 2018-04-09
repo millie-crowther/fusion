@@ -1,13 +1,13 @@
 #ifndef FUSION_H
 #define FUSION_H
 
-#include "sdf.h"
+#include "canonical_sdf.h"
 #include <string>
 #include <vector>
 
 class fusion_t {
 private:
-  //  sdf_t * canon;
+    canonical_sdf_t canon;
 
     void load_filenames(std::vector<std::string> * fns);
     sdf_t * get_sdf(std::string filename);

@@ -27,6 +27,11 @@ point_t::operator*(float scale){
 }
 
 point_t
+point_t::operator/(float scale){
+    return (*this) * (1.0f / scale);
+}
+
+point_t
 point_t::operator+(point_t o){
     return point_t(x + o.x, y + o.y, z + o.z);
 }
@@ -42,3 +47,19 @@ point_t
 point_t::operator-(point_t o){
     return point_t(x - o.x, y - o.y, z - o.z);
 }
+
+float
+point_t::get_x(){
+    return x;
+}
+
+float
+point_t::get_y(){
+    return y;
+}
+
+float
+point_t::get_z(){
+    return z;
+}
+
