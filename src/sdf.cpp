@@ -2,12 +2,16 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iostream>
 
-sdf_t::sdf_t(float * depths, float delta, point_t size, float l){
-    this->depths = depths;
-    this->delta = delta;
+sdf_t::sdf_t(depth_map_t depths, point_t size, float l){
     this->size = size;
     this->l = l;
+    this->depths = depths;
+}
+
+sdf_t::~sdf_t(){
+    delete depths;
 }
 
 float

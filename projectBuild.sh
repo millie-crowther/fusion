@@ -1,4 +1,4 @@
 cd build
 cmake CMakeLists.txt .
-make
+make 
 ./fusion

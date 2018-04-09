@@ -3,25 +3,24 @@
 
 #include <vector>
 
-#include "min_params.h"
 #include "point.h"
+
+typedef std::vector<std::vector<unsigned char>> * depth_map_t;
 
 class sdf_t {
 public:
+    // constants 
+    static constexpr float delta = 2.0f; //in millimetres
+
     // constructor
-    sdf_t(float * depths, float delta, point_t size, float l);
+    sdf_t(depth_map_t depths, point_t size, float l);
+    ~sdf_t();
 
     // distance functions
     float distance(point_t p);
     point_t distance_gradient(point_t p);
 
-    // surface fusion
-    void fuse(sdf_t * canon, min_params_t * ps);
-
 private:
-    // clamp range of distance function
-    float delta;
-
     // size of voxel grid
     point_t size;
 
@@ -29,7 +28,7 @@ private:
     float l;
 
     // depth map of frame
-    float * depths;
+    depth_map_t depths;
 };
 
 #endif
