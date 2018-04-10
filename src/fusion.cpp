@@ -30,7 +30,7 @@ fusion_t::get_sdf(std::string filename){
         }
     }
 
-    sdf_t * sdf = new sdf_t(depths, point_t(), 1);
+    sdf_t * sdf = new sdf_t(depths, point_t(80, 80, 80), 1);
 
     return sdf; 
 }
@@ -56,7 +56,7 @@ fusion_t::fusion(){
     ps.omega_s = 0.2f;
     ps.gamma = 0.1f;
     ps.epsilon = 0.00005f;
-    ps.threshold = 0.1f;
+    ps.threshold_nonrigid = 0.1f;
 
     std::vector<std::string> filenames;
     load_filenames(&filenames);

@@ -19,7 +19,8 @@ struct min_params_t {
     float epsilon;
 
     // threshold for terminating registration in mm
-    float threshold;
+    float threshold_rigid;
+    float threshold_nonrigid;
 };
 
 #endif
