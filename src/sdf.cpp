@@ -49,3 +49,33 @@ sdf_t::voxel_centre(point_t p){
     point_t p_floor = point_t((int) p_div.get_x(), (int) p_div.get_y(), (int) p_div.get_z()) * l;
     return p_floor + point_t(l, l, l) / 2.0f; 
 }
+
+void 
+sdf_t::fuse(canonical_sdf_t * canon, sdf_t * previous, min_params_t * ps){
+    // initialise deformation field to that of the previous frame
+    std::cout << "Initialising deformation field..." << std::endl;
+
+    for (int x = 0; x < deform_field.size(); x++){
+        for (int y = 0; y < deform_field[0].size(); y++){
+            for (int z = 0; z < deform_field[0][0].size(); z++){
+                deform_field[x][y][z] = previous->deform_field[x][y][z];
+            }
+        }
+    }
+
+    // rigid component
+    std::cout << "Performing rigid component of reconstruction..." << std::endl;
+
+    bool should_update;
+    do {
+        should_update = false;
+    } while (should_update);
+
+    // non-rigid component
+    std::cout << "Performing non-rigid component of reconstruction..." << std::endl; 
+
+    do {
+        should_update = false;
+    } while (should_update);
+
+}

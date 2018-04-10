@@ -37,7 +37,7 @@ private:
     deform_field_t deform_field;
     
     // gradient descent
-    void update(
+    void update();
 
     //private methods
     point_t voxel_centre(point_t p);

@@ -51,7 +51,7 @@ fusion_t::fusion(){
     min_params_t ps;
 
     // set defaults
-    ps.eta = 0.1f;
+    ps.eta_nonrigid = 0.1f;
     ps.omega_k = 0.5f;
     ps.omega_s = 0.2f;
     ps.gamma = 0.1f;
@@ -61,8 +61,18 @@ fusion_t::fusion(){
     std::vector<std::string> filenames;
     load_filenames(&filenames);
  
-    for (int i = 0; i < filenames.size(); i++){
+    sdf_t * initial = get_sdf(filenames[0]);
+    canon.add_sdf(initial);
+
+    sdf_t * previous = initial;
+
+    for (int i = 1; i < filenames.size(); i++){
         sdf_t * sdf = get_sdf(filenames[i]);
+ 
+        sdf->fuse(&canon, previous, &ps);
+       
         canon.add_sdf(sdf);
+
+        previous = sdf;
     }
 }

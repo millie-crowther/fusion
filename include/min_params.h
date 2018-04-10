@@ -2,8 +2,9 @@
 #define MIN_PARAMS_H
 
 struct min_params_t {
-    // learning rate
-    float eta;
+    // learning rates for rigid and non-rigid alignment
+    float eta_rigid;
+    float eta_nonrigid;
 
     // relative weighting of killing condition
     float omega_k;

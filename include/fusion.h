@@ -6,12 +6,6 @@
 #include <vector>
 
 class fusion_t {
-private:
-    canonical_sdf_t canon;
-
-    void load_filenames(std::vector<std::string> * fns);
-    sdf_t * get_sdf(std::string filename);
-
 public:
     // constructors and destructors
     fusion_t();
@@ -19,6 +13,11 @@ public:
     
     // main public method
     void fusion();
+private:
+    canonical_sdf_t canon;
+
+    void load_filenames(std::vector<std::string> * fns);
+    sdf_t * get_sdf(std::string filename);
 };
 
 #endif
