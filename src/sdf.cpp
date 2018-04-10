@@ -28,7 +28,7 @@ public:
         };
         point_t d = axes[axis];
     
-        return function_t([function, d](point_t p){
+        return function_t([=](point_t p){
             return (function(p + d) - function(p - d)) / (2 * l);
         });
     }
