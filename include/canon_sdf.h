@@ -5,11 +5,11 @@
 
 #include <list>
 
-class canonical_sdf_t {
+class canon_sdf_t {
 public:
     // constructor and destructor
-    canonical_sdf_t();
-    ~canonical_sdf_t();   
+    canon_sdf_t();
+    ~canon_sdf_t();   
 
     float distance(point_t p);
 

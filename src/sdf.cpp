@@ -47,41 +47,37 @@ sdf_t::voxel_centre(point_t p){
 }
 
 void 
-sdf_t::fuse(canonical_sdf_t * canon, sdf_t * previous, min_params_t * ps){
+sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous, min_params_t * ps){
     // initialise deformation field to that of the previous frame
-    std::cout << "Initialising deformation field..." << std::endl;
-
     for (auto v : previous->deform_field){
         deform_field.push_back(v);
     }
 
     // rigid component
-    std::cout << "Performing rigid component of reconstruction..." << std::endl;
-
     bool should_update;
-    do {
+    int i;
+    for (i = 0; i == 0 || should_update; i++){
         should_update = false;
-        update_rigid(&should_update, ps);
-    } while (should_update);
+        update_rigid(&should_update, canon, ps);
+    }
+    std::cout << "Rigid transformation update converged in " << i << " iterations." << std::endl;
 
     // non-rigid component
-    std::cout << "Performing non-rigid component of reconstruction..." << std::endl; 
-
-    do {
+    for (i = 0; i == 0 || should_update; i++){
         should_update = false;
-        update_nonrigid(&should_update, ps);
-    } while (should_update);
-
+        update_nonrigid(&should_update, canon, ps);
+    }
+    std::cout << "Non-rigid transformation update converged in " << i << " iterations." << std::endl;
 }
 
 void
-sdf_t::update_rigid(bool * cont, min_params_t * ps){
+sdf_t::update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
     float eta = ps->eta_rigid;
     float threshold = ps->threshold_rigid;
 
     for (int i = 0; i < deform_field.size(); i++){
         point_t voxel = voxel_at(i);
-        point_t e = energy_rigid(voxel);
+        point_t e = data_energy(voxel, canon);
         
         if ((e * eta).length() > threshold){
             *cont = true;
@@ -92,13 +88,13 @@ sdf_t::update_rigid(bool * cont, min_params_t * ps){
 }
 
 void
-sdf_t::update_nonrigid(bool * cont, min_params_t * ps){
+sdf_t::update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
     float eta = ps->eta_nonrigid;
     float threshold = ps->threshold_nonrigid;
 
     for (int i = 0; i < deform_field.size(); i++){
         point_t voxel = voxel_at(i);
-        point_t e = energy_nonrigid(voxel);
+        point_t e = energy_gradient(voxel, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
         
         if ((e * eta).length() > threshold){
             *cont = true;
@@ -124,11 +120,24 @@ sdf_t::voxel_at(int i){
 }
 
 point_t
-sdf_t::energy_rigid(point_t voxel){
-     return point_t(); //TODO
+sdf_t::energy_gradient(point_t v, canon_sdf_t * c, float o_k, float o_s, float gamma, float eps){
+     return 
+         data_energy(v, c) +
+         killing_energy(v, gamma) * o_k +
+         level_set_energy(v, eps) * o_s;
 }
 
 point_t
-sdf_t::energy_nonrigid(point_t voxel){
-     return point_t(); //TODO
+sdf_t::data_energy(point_t voxel, canon_sdf_t * canon){
+    return point_t(); //TODO
+}
+
+point_t
+sdf_t::level_set_energy(point_t voxel, float epsilon){
+    return point_t(); //TODO
+}
+
+point_t
+sdf_t::killing_energy(point_t voxel, float gamma){
+    return point_t(); //TODO
 }

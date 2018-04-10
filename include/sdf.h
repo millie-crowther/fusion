@@ -8,7 +8,7 @@
 
 typedef std::vector<std::vector<unsigned char>> * depth_map_t;
 
-class canonical_sdf_t;
+class canon_sdf_t;
 
 class sdf_t {
 public:
@@ -20,7 +20,7 @@ public:
     ~sdf_t();
 
     // fusion
-    void fuse(canonical_sdf_t * canon, sdf_t * previous, min_params_t * ps);
+    void fuse(canon_sdf_t * canon, sdf_t * previous, min_params_t * ps);
 
 private:
     // size of voxel grid
@@ -36,11 +36,13 @@ private:
     std::vector<point_t> deform_field;
     
     // gradient descent
-    void update_rigid(bool * cont, min_params_t * ps);
-    point_t energy_rigid(point_t voxel);
+    void update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps);
+    void update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps);
 
-    void update_nonrigid(bool * cont, min_params_t * ps);
-    point_t energy_nonrigid(point_t voxel);
+    point_t energy_gradient(point_t v, canon_sdf_t* c, float o_k, float o_s, float gamma, float eps);
+    point_t data_energy(point_t voxel, canon_sdf_t * canon);
+    point_t killing_energy(point_t voxel, float gamma);
+    point_t level_set_energy(point_t voxel, float epsilon);
 
     //private methods
     point_t voxel_centre(point_t p);
