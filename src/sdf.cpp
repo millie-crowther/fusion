@@ -4,6 +4,36 @@
 #include <cmath>
 #include <iostream>
 
+template<class T>
+class function_t {
+private:
+    T function;
+
+public:
+    function_t(T f){
+        function = f;
+    }
+
+    float eval(point_t p){
+        return function(p);
+    }
+
+    function_t differentiate(int axis){
+        float l = 1.0f; //TODO
+
+        point_t axes[3] = {
+            point_t(l, 0, 0),
+            point_t(0, l, 0),
+            point_t(0, 0, l)
+        };
+        point_t d = axes[axis];
+    
+        return function_t([function, d](point_t p){
+            return (function(p + d) - function(p - d)) / (2 * l);
+        });
+    }
+};
+
 sdf_t::sdf_t(depth_map_t depths, point_t size, float l){
     this->size = size;
     this->l = l;
@@ -72,35 +102,29 @@ sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous, min_params_t * ps){
 
 void
 sdf_t::update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
-    float eta = ps->eta_rigid;
-    float threshold = ps->threshold_rigid;
-
     for (int i = 0; i < deform_field.size(); i++){
-        point_t voxel = voxel_at(i);
-        point_t e = data_energy(voxel, canon);
+        point_t e = data_energy(voxel_at(i), deform_field[i], canon);
+        point_t u = e * ps->eta_rigid;
         
-        if ((e * eta).length() > threshold){
+        if (u.length() > ps->threshold_rigid){
             *cont = true;
         }
        
-        deform_field[i] -= e * eta;
+        deform_field[i] -= u;
     }       
 }
 
 void
 sdf_t::update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
-    float eta = ps->eta_nonrigid;
-    float threshold = ps->threshold_nonrigid;
-
     for (int i = 0; i < deform_field.size(); i++){
-        point_t voxel = voxel_at(i);
-        point_t e = energy_gradient(voxel, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
-        
-        if ((e * eta).length() > threshold){
+        point_t e = energy_gradient(i, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
+        point_t u = e * ps->eta_nonrigid; 
+      
+        if (u.length() > ps->threshold_nonrigid){
             *cont = true;
         }
        
-        deform_field[i] -= e * eta;
+        deform_field[i] -= u;
     }       
 
 }
@@ -116,28 +140,30 @@ sdf_t::voxel_at(int i){
      int y = (i - x * h * d) / d;
      int z = i - x * h * d - y * d;
 
-     return point_t(x, y, z) * l + point_t(l, l, l) / 2;
+     return voxel_centre(point_t(x, y, z) * l);
 }
 
 point_t
-sdf_t::energy_gradient(point_t v, canon_sdf_t * c, float o_k, float o_s, float gamma, float eps){
+sdf_t::energy_gradient(int voxel, canon_sdf_t * c, float o_k, float o_s, float gamma, float eps){
+     point_t p = voxel_at(voxel);
+     point_t u = deform_field[voxel];
      return 
-         data_energy(v, c) +
-         killing_energy(v, gamma) * o_k +
-         level_set_energy(v, eps) * o_s;
+         data_energy(p, u, c) +
+         killing_energy(p, u, gamma) * o_k +
+         level_set_energy(p, u, eps) * o_s;
 }
 
 point_t
-sdf_t::data_energy(point_t voxel, canon_sdf_t * canon){
+sdf_t::data_energy(point_t p, point_t u, canon_sdf_t * canon){
     return point_t(); //TODO
 }
 
 point_t
-sdf_t::level_set_energy(point_t voxel, float epsilon){
+sdf_t::level_set_energy(point_t p, point_t u, float epsilon){
     return point_t(); //TODO
 }
 
 point_t
-sdf_t::killing_energy(point_t voxel, float gamma){
+sdf_t::killing_energy(point_t p, point_t u, float gamma){
     return point_t(); //TODO
 }
