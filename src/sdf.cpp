@@ -4,35 +4,7 @@
 #include <cmath>
 #include <iostream>
 
-template<class T>
-class function_t {
-private:
-    T function;
-
-public:
-    function_t(T f){
-        function = f;
-    }
-
-    float eval(point_t p){
-        return function(p);
-    }
-
-    function_t differentiate(int axis){
-        float l = 1.0f; //TODO
-
-        point_t axes[3] = {
-            point_t(l, 0, 0),
-            point_t(0, l, 0),
-            point_t(0, 0, l)
-        };
-        point_t d = axes[axis];
-    
-        return function_t([=](point_t p){
-            return (function(p + d) - function(p - d)) / (2 * l);
-        });
-    }
-};
+#include "matrix.h"
 
 sdf_t::sdf_t(depth_map_t depths, point_t size, float l){
     this->size = size;
@@ -160,6 +132,15 @@ sdf_t::data_energy(point_t p, point_t u, canon_sdf_t * canon){
 
 point_t
 sdf_t::level_set_energy(point_t p, point_t u, float epsilon){
+    std::function<float(point_t)> phi = [=](point_t x){
+        return distance(x + u);
+    };
+    
+    matrix_t H = matrix_t::hessian(function_t(l, phi), p);
+
+    
+    
+    
     return point_t(); //TODO
 }
 

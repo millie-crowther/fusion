@@ -29,25 +29,6 @@ matrix_t::transpose(){
     return matrix_t(ms);
 }
 
-matrix_t
-matrix_t::hessian(sdf_t * sdf, point_t v){
-    float ms[9] = {
-        0, 0, 0,
-        0, 0, 0,
-        0, 0, 0
-    };
-    return matrix_t(ms);
-}
-
-matrix_t
-matrix_t::jacobian(sdf_t * sdf, point_t v){
-    float ms[9] = {
-        0, 0, 0,
-        0, 0, 0,
-        0, 0, 0
-    };
-    return matrix_t(ms);
-}
 
 std::vector<float>
 matrix_t::stack(){
@@ -60,4 +41,14 @@ matrix_t::stack(){
     }
 
     return result;
+}
+
+matrix_t
+matrix_t::hessian(function_t f, point_t p){
+    return matrix_t(nullptr);
+}
+
+float
+matrix_t::get(int x, int y){
+    return y * 3 + x;
 }

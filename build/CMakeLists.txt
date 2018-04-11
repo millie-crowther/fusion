@@ -15,6 +15,7 @@ set(SOURCES
     ../src/sdf.cpp
     ../src/canon_sdf.cpp
     ../src/fusion.cpp
+    ../src/matrix.cpp
 )
 
 add_executable(fusion ${SOURCES})

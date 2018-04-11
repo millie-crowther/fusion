@@ -3,8 +3,7 @@
 
 #include "point.h"
 #include <vector>
-
-class sdf_t;
+#include "function.h"
 
 class matrix_t {
 private:
@@ -16,8 +15,8 @@ private:
 
 public:
     // factory methods
-    static matrix_t hessian(sdf_t * sdf, point_t v);
-    static matrix_t jacobian(sdf_t * sdf, point_t v);
+    static matrix_t hessian(function_t f, point_t v);
+    static matrix_t jacobian(function_t f, point_t v);
 
     // overridden operator
     point_t operator*(point_t v);
