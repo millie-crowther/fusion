@@ -12,12 +12,13 @@ public:
     ~fusion_t();
     
     // main public method
-    void fusion();
+    void fusion(int mode);
+
 private:
     canon_sdf_t canon;
 
     void load_filenames(std::vector<std::string> * fns);
-    sdf_t * get_sdf(std::string filename);
+    sdf_t * get_sdf(std::string filename, int mode);
 };
 
 #endif

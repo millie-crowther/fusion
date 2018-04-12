@@ -8,10 +8,11 @@
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 
-sdf_t::sdf_t(depth_map_t depths, point_t size, float l){
+sdf_t::sdf_t(depth_map_t depths, point_t size, float l, bool is_multi){
     this->size = size;
     this->l = l;
     this->depths = depths;
+    this->is_multi = is_multi;
 
     for (int x = 0; x < size.get_x(); x += l){
         for (int y = 0; y < size.get_y(); y += l){
@@ -51,34 +52,18 @@ sdf_t::voxel_centre(point_t p){
 }
 
 void 
-sdf_t::fuse(int fusion_mode, canon_sdf_t * canon, sdf_t * previous, min_params_t * ps){
+sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous, min_params_t * ps){
     // initialise deformation field to that of the previous frame
     for (auto v : previous->deform_field){
         deform_field.push_back(v);
     }
 
-    // delegate depending on required method
-    if (fusion_mode == fusion_mode::CPU){
-        gpu_fuse(canon, ps);
-
-    } else {
-        cpu_fuse(canon, ps, fusion_mode == fusion_mode::CPU_MULTITHREAD);
-    }
-}
-
-void 
-sdf_t::gpu_fuse(canon_sdf_t * canon, min_params_t * ps){
-
-}
-
-void 
-sdf_t::cpu_fuse(canon_sdf_t * canon, min_params_t * ps, bool is_multithreaded){
     // rigid component
     bool should_update = true;;
     int i;
     for (i = 0; should_update; i++){
         should_update = false;
-        update_rigid(&should_update, canon, ps, is_multithreaded);
+        update_rigid(&should_update, canon, ps);
     }
     std::cout << "Rigid transformation update converged in " << i << " iterations." << std::endl;
 
@@ -86,13 +71,13 @@ sdf_t::cpu_fuse(canon_sdf_t * canon, min_params_t * ps, bool is_multithreaded){
     should_update = true;
     for (i = 0; should_update; i++){
         should_update = false;
-        update_nonrigid(&should_update, canon, ps, is_multithreaded);
+        update_nonrigid(&should_update, canon, ps);
     }
     std::cout << "Non-rigid transformation update converged in " << i << " iterations." << std::endl;
 }
 
 void
-sdf_t::update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps, bool is_multi){
+sdf_t::update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
     for (int i = 0; i < deform_field.size(); i++){
         point_t e = data_energy(voxel_at(i), deform_field[i], canon);
         point_t u = e * ps->eta_rigid;
@@ -106,7 +91,7 @@ sdf_t::update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps, bool is
 }
 
 void
-sdf_t::update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps, bool is_multi){
+sdf_t::update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
     for (int i = 0; i < deform_field.size(); i++){
         point_t e = energy_gradient(i, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
         point_t u = e * ps->eta_nonrigid; 

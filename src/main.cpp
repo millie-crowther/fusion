@@ -2,8 +2,7 @@
 
 int main(){
     fusion_t f;
-    //f.fusion();
-
+    f.fusion(fusion_mode::CPU);
     
     return 0;
 }
