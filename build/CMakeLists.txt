@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.5)
 set (CMAKE_CXX_STANDARD 11)
-set (CMAKE_CXX_FLAGS "-pthread -Dcimg_display=0")
+
+# choose compiler
+set (CMAKE_CXX_COMPILER "/usr/bin/nvcc")
+#set (CMAKE_CXX_COMPILER "/usr/bin/g++")
+
+set (CMAKE_CXX_FLAGS "-pthread -lX11 -Dcimg_display=0")
+
 project(fusion CXX)
 
 set(INCLUDE_DIR
