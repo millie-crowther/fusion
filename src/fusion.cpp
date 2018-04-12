@@ -73,7 +73,7 @@ fusion_t::fusion(){
 
         sdf_t * sdf = get_sdf(filenames[i]);
  
-        sdf->fuse(&canon, previous, &ps);
+        sdf->fuse(0, &canon, previous, &ps);
        
         canon.add_sdf(sdf);
 
