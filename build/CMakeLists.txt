@@ -22,7 +22,7 @@ set(SOURCES
     ../src/canon_sdf.cpp
     ../src/fusion.cpp
     ../src/matrix.cpp
-    ../src/gpu_sdf.cpp
+    ../src/gpu_sdf.cu
 )
 
 add_executable(fusion ${SOURCES})
