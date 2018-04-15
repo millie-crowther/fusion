@@ -7,10 +7,11 @@
 #include "matrix.h"
 #include "canon_sdf.h"
 
-sdf_t::sdf_t(depth_map_t depths, point_t size, float l){
+sdf_t::sdf_t(depth_map_t depths, point_t size, float l, bool is_multi){
     this->size = size;
     this->l = l;
     this->depths = depths;
+    this->is_multi = is_multi;
 
     for (int x = 0; x < size.get(0); x += l){
         for (int y = 0; y < size.get(1); y += l){
@@ -90,16 +91,17 @@ sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous, min_params_t * ps){
     }
 
     // rigid component
-    bool should_update;
+    bool should_update = true;;
     int i;
-    for (i = 0; i == 0 || should_update; i++){
+    for (i = 0; should_update; i++){
         should_update = false;
         update_rigid(&should_update, canon, ps);
     }
     std::cout << "Rigid transformation update converged in " << i << " iterations." << std::endl;
 
     // non-rigid component
-    for (i = 0; i == 0 || should_update; i++){
+    should_update = true;
+    for (i = 0; should_update; i++){
         should_update = false;
         update_nonrigid(&should_update, canon, ps);
     }

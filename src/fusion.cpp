@@ -3,6 +3,7 @@
 #include "min_params.h"
 #include <iostream>
 #include "point.h"
+#include "gpu_sdf.h"
 
 #include "CImg.h"
 using namespace cimg_library;
@@ -16,7 +17,7 @@ fusion_t::~fusion_t(){
 }
 
 sdf_t *
-fusion_t::get_sdf(std::string filename){
+fusion_t::get_sdf(std::string filename, int mode){
     std::cout << "loading depth map: " << filename << std::endl; 
 
     CImg<unsigned char> image(filename.c_str());
@@ -30,7 +31,16 @@ fusion_t::get_sdf(std::string filename){
         }
     }
 
-    sdf_t * sdf = new sdf_t(depths, point_t(80, 80, 80), 1);
+    sdf_t * sdf;
+
+    point_t size(80, 80, 80);
+    float l = 1;
+
+    if (mode == fusion_mode::GPU){
+        sdf = new gpu_sdf_t(depths, size, l);
+    } else {
+        sdf = new sdf_t(depths, size, l, mode == fusion_mode::CPU_MULTITHREAD);
+    }
 
     return sdf; 
 }
@@ -47,7 +57,7 @@ fusion_t::load_filenames(std::vector<std::string> * fns){
 }
 
 void
-fusion_t::fusion(){
+fusion_t::fusion(int mode){
     min_params_t ps;
 
     // set defaults
@@ -63,7 +73,7 @@ fusion_t::fusion(){
     std::vector<std::string> filenames;
     load_filenames(&filenames);
  
-    sdf_t * initial = get_sdf(filenames[0]);
+    sdf_t * initial = get_sdf(filenames[0], fusion_mode::NIL);
     canon.add_sdf(initial);
 
     sdf_t * previous = initial;
@@ -71,7 +81,7 @@ fusion_t::fusion(){
     for (int i = 1; i < filenames.size(); i++){
         std::cout << "Frame number: " << i << std::endl;     
 
-        sdf_t * sdf = get_sdf(filenames[i]);
+        sdf_t * sdf = get_sdf(filenames[i], mode);
  
         sdf->fuse(&canon, previous, &ps);
        
