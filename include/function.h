@@ -3,19 +3,21 @@
 
 #include <functional>
 #include "point.h"
+#include <iostream>
 
+template<class T>
 class function_t {
 private:
     float l;
-    std::function<float(point_t)> f;
+    std::function<T(point_t)> f;
 
 public:
-    function_t(float l, std::function<float(point_t)>& f){
+    function_t(float l, std::function<T(point_t)> f){
         this->f = f;
         this->l = l;
     }
 
-    float operator()(point_t p){
+    T operator()(point_t p){
         return f(p);
     }
 
@@ -27,8 +29,8 @@ public:
         };
         point_t u = axes[axis];
 
-        std::function<float(point_t)> f_grad = [=](point_t x){
-            return (f(x + u) - f(x - u)) / (2 * l);
+	std::function<T(point_t)> f_grad = [=](point_t x){
+            return (this->f(x + u) - this->f(x - u)) / (2 * this->l);
         };
 
         return function_t(l, f_grad);

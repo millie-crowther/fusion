@@ -5,6 +5,7 @@ class point_t {
 public:
     // constructors
     point_t();
+    point_t(float x);
     point_t(float x, float y, float z);
     point_t(const point_t& p);
     
@@ -13,20 +14,17 @@ public:
     point_t operator/(float scale);
     point_t operator+(point_t other);
     point_t operator-(point_t other);
+    void operator+=(point_t other);
     void operator-=(point_t other);
 
     // vector length
     float length();
 
     // getters
-    float get_x();
-    float get_y();
-    float get_z();
+    float get(int i);
 
 private:
-    float x;
-    float y;
-    float z;
+    float elem[3];
 };
 
 #endif

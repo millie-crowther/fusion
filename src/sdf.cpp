@@ -5,15 +5,16 @@
 #include <iostream>
 
 #include "matrix.h"
+#include "canon_sdf.h"
 
 sdf_t::sdf_t(depth_map_t depths, point_t size, float l){
     this->size = size;
     this->l = l;
     this->depths = depths;
 
-    for (int x = 0; x < size.get_x(); x += l){
-        for (int y = 0; y < size.get_y(); y += l){
-            for (int z = 0; z < size.get_z(); z += l){
+    for (int x = 0; x < size.get(0); x += l){
+        for (int y = 0; y < size.get(1); y += l){
+            for (int z = 0; z < size.get(2); z += l){
                 deform_field.push_back(point_t());
             }
         }
@@ -37,14 +38,47 @@ sdf_t::distance(point_t p){
 }
 
 point_t
-sdf_t::distance_gradient(point_t p){
+sdf_t::deformation_at(point_t p){
+    return deform_field[voxel_index(p)];
+}
 
+int
+sdf_t::voxel_index(point_t p){
+    point_t p_grid = p / l;
+    int x = p_grid.get(0);
+    int y = p_grid.get(1);
+    int z = p_grid.get(2);
+
+    point_t grid = size / l;
+    int w = grid.get(0);
+    int h = grid.get(1);
+    int d = grid.get(2);
+
+    return x * h * d + y * d + z;
+}
+
+point_t
+sdf_t::distance_gradient(point_t p){
+    point_t u = deformation_at(p);
+
+    auto phi = [=](point_t x){
+        return this->distance(x + u);
+    };
+    
+    function_t<float> f(l, phi);
+    function_t<float> g[3] = {
+        f.differentiate(0),
+        f.differentiate(1),
+        f.differentiate(2)
+    };
+
+    return point_t(g[0](p), g[1](p), g[2](p));
 }
 
 point_t
 sdf_t::voxel_centre(point_t p){
     point_t p_div = p / l;
-    point_t p_floor = point_t((int) p_div.get_x(), (int) p_div.get_y(), (int) p_div.get_z()) * l;
+    point_t p_floor = point_t((int) p_div.get(0), (int) p_div.get(1), (int) p_div.get(2)) * l;
     return p_floor + point_t(l, l, l) / 2.0f; 
 }
 
@@ -104,9 +138,9 @@ sdf_t::update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
 point_t
 sdf_t::voxel_at(int i){
      point_t dim = size / l;
-     int w = dim.get_x();
-     int h = dim.get_y();
-     int d = dim.get_z();
+     int w = dim.get(0);
+     int h = dim.get(1);
+     int d = dim.get(2);
 
      int x = i / (h * d);
      int y = (i - x * h * d) / d;
@@ -127,24 +161,59 @@ sdf_t::energy_gradient(int voxel, canon_sdf_t * c, float o_k, float o_s, float g
 
 point_t
 sdf_t::data_energy(point_t p, point_t u, canon_sdf_t * canon){
+    auto phi = [=](point_t x){
+        return distance(x + u);
+    };
+    
+    auto phi_g = [=](point_t x){
+        return canon->distance(x + u);
+    };
     return point_t(); //TODO
 }
 
 point_t
 sdf_t::level_set_energy(point_t p, point_t u, float epsilon){
-    std::function<float(point_t)> phi = [=](point_t x){
+    auto phi = [=](point_t x){
         return distance(x + u);
     };
-    
-    matrix_t H = matrix_t::hessian(function_t(l, phi), p);
 
-    
-    
-    
-    return point_t(); //TODO
+    matrix_t h = matrix_t::hessian(function_t<float>(l, phi), p);
+
+    point_t g = distance_gradient(p + u);
+
+    float alpha = (g.length() - 1) / (g.length() + epsilon);
+    return h * g * alpha;
 }
 
 point_t
 sdf_t::killing_energy(point_t p, point_t u, float gamma){
-    return point_t(); //TODO
+    auto psi = [=](point_t p){
+        return deformation_at(p);
+    };
+
+    matrix_t j = matrix_t::jacobian(function_t<point_t>(l, psi), p);
+    std::vector<float> j_v = j.stack();
+    std::vector<float> jt_v = j.transpose().stack();
+
+    std::vector<float> v;
+    for (int i = 0; i < j_v.size(); i++){
+	v.push_back(jt_v[i] + j_v[i] * gamma);
+    }
+
+    std::vector<matrix_t> h;
+    for (int i = 0; i < 3; i++){
+        function_t<float> f(l, [=](point_t p){ return deformation_at(p).get(i);});
+        h.push_back(matrix_t::hessian(f, p));
+    }
+
+    point_t result;
+    for (int i = 0; i < 9; i++){
+	result += point_t(
+            h[i / 3].get(i % 3, 0) * v[i],
+            h[i / 3].get(i % 3, 1) * v[i],
+            h[i / 3].get(i % 3, 2) * v[i]
+	);
+    }
+
+    return result * 2;
 }

@@ -50,6 +50,8 @@ private:
     float distance(point_t p);
     point_t distance_gradient(point_t p);
     point_t voxel_at(int i);
+    point_t deformation_at(point_t p);
+    int voxel_index(point_t p);
 };
 
 #endif
