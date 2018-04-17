@@ -1,7 +1,8 @@
 #include "gpu_sdf.h"
 
-#include <cuda.h>
+//#include <cuda.h>
 
+/*
 __global__ void 
 data_energy_kernel(float * x, int w, int h, int d){
     int i = blockIdx.x * blockDim.x + threadIdx.x;
@@ -28,7 +29,21 @@ level_set_energy_kernel(float * x, int w, int h, int d){
         return;
     }
 }
-
+*/
 gpu_sdf_t::gpu_sdf_t(depth_map_t depths, point_t size, float l) : sdf_t(depths, size, l, true){
+
+}
+
+gpu_sdf_t::~gpu_sdf_t(){
+
+}
+
+void
+gpu_sdf_t::update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
+
+}
+
+void
+gpu_sdf_t::update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
 
 }
