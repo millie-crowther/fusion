@@ -8,13 +8,15 @@
 template<class T>
 class function_t {
 private:
-    float l;
+    // constants
+    static constexpr float l = 1.0f;
+
+    // target function
     std::function<T(point_t)> f;
 
 public:
-    function_t(float l, std::function<T(point_t)> f){
+    function_t(std::function<T(point_t)> f){
         this->f = f;
-        this->l = l;
     }
 
     T operator()(point_t p){
@@ -33,7 +35,7 @@ public:
             return (this->f(x + u) - this->f(x - u)) / (2 * this->l);
         };
 
-        return function_t(l, f_grad);
+        return function_t(f_grad);
     }
 };
 

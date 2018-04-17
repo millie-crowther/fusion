@@ -31,7 +31,7 @@ point_t::operator*(float scale){
 }
 
 point_t
-point_t::operator/(float scale){
+point_t::operator/(float scale) const {
     return point_t(elem[0] / scale, elem[1] / scale, elem[2] / scale);
 }
 
@@ -60,6 +60,6 @@ point_t::operator-(point_t o){
 }
 
 float
-point_t::get(int i){
+point_t::get(int i) const {
     return elem[i];
 }

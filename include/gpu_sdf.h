@@ -5,7 +5,7 @@
 
 class gpu_sdf_t : public sdf_t {
 public:
-    gpu_sdf_t(depth_map_t depths, point_t size, float l);
+    gpu_sdf_t(depth_map_t depths);
     ~gpu_sdf_t();
 
     void update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps) override;

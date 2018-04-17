@@ -31,15 +31,12 @@ fusion_t::get_sdf(std::string filename, int mode){
         }
     }
 
-    sdf_t * sdf;
-
-    point_t size(80, 80, 80);
-    float l = 1;
+    sdf_t * sdf = nullptr;
 
     if (mode == fusion_mode::GPU){
-        sdf = new gpu_sdf_t(depths, size, l);
+        sdf = new gpu_sdf_t(depths);
     } else {
-        sdf = new sdf_t(depths, size, l, mode == fusion_mode::CPU_MULTITHREAD);
+        sdf = new sdf_t(depths, mode == fusion_mode::CPU_MULTITHREAD);
     }
 
     return sdf; 
@@ -82,12 +79,16 @@ fusion_t::fusion(int mode){
         std::cout << "Frame number: " << i << std::endl;     
 
         sdf_t * sdf = get_sdf(filenames[i], mode);
- 
+
         sdf->fuse(&canon, previous, &ps);
        
+	std::cout << 'a' << std::endl;
+
         canon.add_sdf(sdf);
+	std::cout << 'b' << std::endl;
 
         previous = sdf;
+	std::cout << 'c' << std::endl;
 
         std::cout << std::endl;
     }

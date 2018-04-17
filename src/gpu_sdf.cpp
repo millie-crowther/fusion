@@ -30,7 +30,7 @@ level_set_energy_kernel(float * x, int w, int h, int d){
     }
 }
 */
-gpu_sdf_t::gpu_sdf_t(depth_map_t depths, point_t size, float l) : sdf_t(depths, size, l, true){
+gpu_sdf_t::gpu_sdf_t(depth_map_t depths) : sdf_t(depths, true){
 
 }
 

@@ -19,11 +19,8 @@ class canon_sdf_t;
 
 class sdf_t {
 public:
-    // constants 
-    static constexpr float delta = 2.0f; //in millimetres
-
     // constructor
-    sdf_t(depth_map_t depths, point_t size, float l, bool is_multi);
+    sdf_t(depth_map_t depths, bool is_multi);
     ~sdf_t();
 
     // fusion
@@ -35,11 +32,10 @@ protected:
     virtual void update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps);
 
 private:
-    // size of voxel grid
-    point_t size;
-
-    // side length of each voxel
-    float l;
+    // constants 
+    static constexpr float delta = 2.0f; //in millimetres
+    static constexpr float l = 1.0f;
+    static const point_t size;
 
     // depth map of frame
     depth_map_t depths;

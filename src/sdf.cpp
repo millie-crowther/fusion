@@ -7,12 +7,12 @@
 #include "matrix.h"
 #include "canon_sdf.h"
 
-sdf_t::sdf_t(depth_map_t depths, point_t size, float l, bool is_multi){
-    this->size = size;
-    this->l = l;
+const point_t sdf_t::size = point_t(80);
+
+sdf_t::sdf_t(depth_map_t depths, bool is_multi){
     this->depths = depths;
     this->is_multi = is_multi;
-
+    
     for (int x = 0; x < size.get(0); x += l){
         for (int y = 0; y < size.get(1); y += l){
             for (int z = 0; z < size.get(2); z += l){
@@ -40,7 +40,14 @@ sdf_t::distance(point_t p){
 
 point_t
 sdf_t::deformation_at(point_t p){
-    return deform_field[voxel_index(p)];
+    std::cout << p.get(0) << ", " << p.get(1) << ", " << p.get(2) << std::endl;
+    std::cout << voxel_index(p) << std::endl;
+    if (deform_field.empty()){
+	// only the case for the first frame
+	return point_t();
+    } else {
+        return deform_field[voxel_index(p)];
+    }
 }
 
 int
@@ -65,8 +72,8 @@ sdf_t::distance_gradient(point_t p){
     auto phi = [=](point_t x){
         return this->distance(x + u);
     };
-    
-    function_t<float> f(l, phi);
+   
+    function_t<float> f(phi);
     function_t<float> g[3] = {
         f.differentiate(0),
         f.differentiate(1),
@@ -86,12 +93,12 @@ sdf_t::voxel_centre(point_t p){
 void 
 sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous, min_params_t * ps){
     // initialise deformation field to that of the previous frame
-    for (auto v : previous->deform_field){
-        deform_field.push_back(v);
+    for (int i = 0; i < previous->deform_field.size(); i++){
+        deform_field[i] = previous->deform_field[i];
     }
 
     // rigid component
-    bool should_update = true;;
+    bool should_update = true;
     int i;
     for (i = 0; should_update; i++){
         should_update = false;
@@ -103,6 +110,7 @@ sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous, min_params_t * ps){
     should_update = true;
     for (i = 0; should_update; i++){
         should_update = false;
+
         update_nonrigid(&should_update, canon, ps);
     }
     std::cout << "Non-rigid transformation update converged in " << i << " iterations." << std::endl;
@@ -134,7 +142,6 @@ sdf_t::update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
        
         deform_field[i] -= u;
     }       
-
 }
 
 point_t
@@ -162,12 +169,12 @@ sdf_t::energy_gradient(int voxel, canon_sdf_t * c, float o_k, float o_s, float g
 }
 
 point_t
-sdf_t::data_energy(point_t p, point_t u, canon_sdf_t * canon){
-    auto phi = [=](point_t x){
+sdf_t::data_energy(point_t p, point_t u, canon_sdf_t * canon){ 
+    auto phi_n = [=](point_t x){
         return distance(x + u);
     };
     
-    auto phi_g = [=](point_t x){
+    auto phi_global = [=](point_t x){
         return canon->distance(x + u);
     };
     return point_t(); //TODO
@@ -179,21 +186,24 @@ sdf_t::level_set_energy(point_t p, point_t u, float epsilon){
         return distance(x + u);
     };
 
-    matrix_t h = matrix_t::hessian(function_t<float>(l, phi), p);
+    function_t<float> f(phi);
+     
+    matrix_t h = matrix_t::hessian(f, p);
 
     point_t g = distance_gradient(p + u);
 
     float alpha = (g.length() - 1) / (g.length() + epsilon);
+    
     return h * g * alpha;
 }
 
 point_t
-sdf_t::killing_energy(point_t p, point_t u, float gamma){
+sdf_t::killing_energy(point_t p, point_t u, float gamma){ 
     auto psi = [=](point_t p){
         return deformation_at(p);
     };
 
-    matrix_t j = matrix_t::jacobian(function_t<point_t>(l, psi), p);
+    matrix_t j = matrix_t::jacobian(function_t<point_t>(psi), p);
     std::vector<float> j_v = j.stack();
     std::vector<float> jt_v = j.transpose().stack();
 
@@ -204,10 +214,12 @@ sdf_t::killing_energy(point_t p, point_t u, float gamma){
 
     std::vector<matrix_t> h;
     for (int i = 0; i < 3; i++){
-        function_t<float> f(l, [=](point_t p){ return deformation_at(p).get(i);});
-        h.push_back(matrix_t::hessian(f, p));
+        function_t<float> f([=](point_t p){ return u.get(i); });
+	matrix_t m = matrix_t::hessian(f, p);
+        h.push_back(m);
     }
 
+    
     point_t result;
     for (int i = 0; i < 9; i++){
 	result += point_t(
