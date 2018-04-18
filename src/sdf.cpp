@@ -20,30 +20,56 @@ sdf_t::sdf_t(depth_map_t depths, bool is_multi){
             }
         }
     }
+
+    phi = new function_t<float>([=](point_t p){
+        return distance(p);
+    });
+
+    psi = new function_t<point_t>([=](point_t p){
+        return deformation_at(p);
+    });
+
+    psi_u = new function_t<float>([=](point_t p){
+        return deformation_at(p).get(0);
+    });
+    
+    psi_v = new function_t<float>([=](point_t p){
+        return deformation_at(p).get(1);
+    });
+    
+    psi_w = new function_t<float>([=](point_t p){
+        return deformation_at(p).get(2);
+    });
 }
 
 sdf_t::~sdf_t(){
     delete depths;
+    delete phi;
+    delete psi;
+    delete psi_u;
+    delete psi_v;
+    delete psi_w;
 }
 
 float
 sdf_t::distance(point_t p){
+    point_t x = p + deformation_at(p);
+
     // true signed distance
     float phi_true = 1;// depths->at(x).at(y) - p.get_z();
     
     // divide by delta
-    float phi = phi_true / delta;
+    float phi1 = phi_true / delta;
     
     // clamp to range [-1..1]
-    return phi / std::max(1.0f, std::abs(phi));
+    return phi1 / std::max(1.0f, std::abs(phi1));
 }
 
 point_t
 sdf_t::deformation_at(point_t p){
-    std::cout << p.get(0) << ", " << p.get(1) << ", " << p.get(2) << std::endl;
-    std::cout << voxel_index(p) << std::endl;
-    if (deform_field.empty()){
-	// only the case for the first frame
+    int i = voxel_index(p);
+    if (i < 0 || i >= deform_field.size()){
+	// TODO: not 100% sure this is correct behaviour
 	return point_t();
     } else {
         return deform_field[voxel_index(p)];
@@ -67,10 +93,8 @@ sdf_t::voxel_index(point_t p){
 
 point_t
 sdf_t::distance_gradient(point_t p){
-    point_t u = deformation_at(p);
-
     auto phi = [=](point_t x){
-        return this->distance(x + u);
+        return this->distance(x);
     };
    
     function_t<float> f(phi);
@@ -119,7 +143,7 @@ sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous, min_params_t * ps){
 void
 sdf_t::update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
     for (int i = 0; i < deform_field.size(); i++){
-        point_t e = data_energy(voxel_at(i), deform_field[i], canon);
+        point_t e = data_energy(voxel_at(i), canon);
         point_t u = e * ps->eta_rigid;
         
         if (u.length() > ps->threshold_rigid){
@@ -163,47 +187,28 @@ sdf_t::energy_gradient(int voxel, canon_sdf_t * c, float o_k, float o_s, float g
      point_t p = voxel_at(voxel);
      point_t u = deform_field[voxel];
      return 
-         data_energy(p, u, c) +
-         killing_energy(p, u, gamma) * o_k +
-         level_set_energy(p, u, eps) * o_s;
+         data_energy(p, c) +
+         killing_energy(p, gamma) * o_k +
+         level_set_energy(p, eps) * o_s;
 }
 
 point_t
-sdf_t::data_energy(point_t p, point_t u, canon_sdf_t * canon){ 
-    auto phi_n = [=](point_t x){
-        return distance(x + u);
-    };
-    
-    auto phi_global = [=](point_t x){
-        return canon->distance(x + u);
-    };
-    return point_t(); //TODO
+sdf_t::data_energy(point_t p, canon_sdf_t * canon){ 
+    return distance_gradient(p) * (distance(p) - canon->distance(p));
 }
 
 point_t
-sdf_t::level_set_energy(point_t p, point_t u, float epsilon){
-    auto phi = [=](point_t x){
-        return distance(x + u);
-    };
-
-    function_t<float> f(phi);
-     
-    matrix_t h = matrix_t::hessian(f, p);
-
-    point_t g = distance_gradient(p + u);
+sdf_t::level_set_energy(point_t p, float epsilon){
+    matrix_t h = matrix_t::hessian(*phi, p);
+    point_t g = distance_gradient(p);
 
     float alpha = (g.length() - 1) / (g.length() + epsilon);
-    
     return h * g * alpha;
 }
 
 point_t
-sdf_t::killing_energy(point_t p, point_t u, float gamma){ 
-    auto psi = [=](point_t p){
-        return deformation_at(p);
-    };
-
-    matrix_t j = matrix_t::jacobian(function_t<point_t>(psi), p);
+sdf_t::killing_energy(point_t p, float gamma){ 
+    matrix_t j = matrix_t::jacobian(*psi, p);
     std::vector<float> j_v = j.stack();
     std::vector<float> jt_v = j.transpose().stack();
 
@@ -212,13 +217,10 @@ sdf_t::killing_energy(point_t p, point_t u, float gamma){
 	v.push_back(jt_v[i] + j_v[i] * gamma);
     }
 
-    std::vector<matrix_t> h;
-    for (int i = 0; i < 3; i++){
-        function_t<float> f([=](point_t p){ return u.get(i); });
-	matrix_t m = matrix_t::hessian(f, p);
-        h.push_back(m);
-    }
-
+    matrix_t h_u = matrix_t::hessian(*psi_u, p);
+    matrix_t h_v = matrix_t::hessian(*psi_v, p);
+    matrix_t h_w = matrix_t::hessian(*psi_w, p);
+    matrix_t h[3] = { h_u, h_v, h_w };    
     
     point_t result;
     for (int i = 0; i < 9; i++){

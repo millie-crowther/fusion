@@ -5,11 +5,12 @@
 
 #include "point.h"
 #include "min_params.h"
+#include "function.h"
 
 typedef std::vector<std::vector<unsigned char>> * depth_map_t;
 
 namespace fusion_mode {
-    const int NIL = -1;
+    const int NIL = -1; // only valid for first frame
     const int CPU = 0;
     const int CPU_MULTITHREAD = 1;
     const int GPU = 2;
@@ -37,6 +38,13 @@ private:
     static constexpr float l = 1.0f;
     static const point_t size;
 
+    // functions
+    function_t<float> * phi;
+    function_t<point_t> * psi;
+    function_t<float> * psi_u;
+    function_t<float> * psi_v;
+    function_t<float> * psi_w;
+
     // depth map of frame
     depth_map_t depths;
 
@@ -47,9 +55,9 @@ private:
     std::vector<point_t> deform_field;
    
     point_t energy_gradient(int voxel, canon_sdf_t* c, float o_k, float o_s, float gamma, float eps);
-    point_t data_energy(point_t p, point_t u, canon_sdf_t * canon);
-    point_t killing_energy(point_t p, point_t u, float gamma);
-    point_t level_set_energy(point_t p, point_t u, float epsilon);
+    point_t data_energy(point_t p, canon_sdf_t * canon);
+    point_t killing_energy(point_t p, float gamma);
+    point_t level_set_energy(point_t p, float epsilon);
 
     //private methods
     point_t voxel_centre(point_t p);
