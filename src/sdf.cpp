@@ -69,10 +69,10 @@ point_t
 sdf_t::deformation_at(point_t p){
     int i = voxel_index(p);
     if (i < 0 || i >= deform_field.size()){
-	// TODO: not 100% sure this is correct behaviour
+	// should only happen if doing gradient check near boundaries...
 	return point_t();
     } else {
-        return deform_field[voxel_index(p)];
+        return deform_field[i];
     }
 }
 
@@ -199,10 +199,10 @@ sdf_t::data_energy(point_t p, canon_sdf_t * canon){
 
 point_t
 sdf_t::level_set_energy(point_t p, float epsilon){
-    matrix_t h = matrix_t::hessian(*phi, p);
-    point_t g = distance_gradient(p);
-
+    matrix_t h  = matrix_t::hessian(*phi, p);
+    point_t g   = distance_gradient(p);
     float alpha = (g.length() - 1) / (g.length() + epsilon);
+
     return h * g * alpha;
 }
 

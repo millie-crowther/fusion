@@ -1,0 +1,19 @@
+p.intr = Intr(525.f, 525.f, p.cols / 2 - 0.5f, p.rows / 2 - 0.5f);
+
+kfusion::Intr::Intr() {}
+kfusion::Intr::Intr(float fx_, float fy_, float cx_, float cy_) : fx(fx_), fy(fy_), cx(cx_), cy(cy_) {}
+
+kfusion::Intr kfusion::Intr::operator()(int level_index) const {
+    int div = 1 << level_index;
+    return (Intr(fx / div, fy / div, cx / div, cy / div));
+}
+
+std::ostream &operator<<(std::ostream &os, const kfusion::Intr &intr) {
+    return os << "([f = " << intr.fx << ", " << intr.fy << "] [cp = " << intr.cx << ", " << intr.cy << "])";
+}
+
+
+
+this code seems to refer to the internal properties of the camera
+
+
