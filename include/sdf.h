@@ -16,6 +16,13 @@ namespace fusion_mode {
     const int GPU = 2;
 }
 
+struct camera_prop_t {
+    float fx;
+    float fy;
+    float cx;
+    float cy;
+};
+
 class canon_sdf_t;
 
 class sdf_t {
@@ -45,15 +52,12 @@ private:
     function_t<float> * psi_v;
     function_t<float> * psi_w;
 
-    // depth map of frame
+    // fields
     depth_map_t depths;
-
-    // whether energy gradient is calculated asynchronously
     bool is_multi;
-
-    // deformation field
     std::vector<point_t> deform_field;
-   
+    camera_prop_t camera;  
+ 
     point_t energy_gradient(int voxel, canon_sdf_t* c, float o_k, float o_s, float gamma, float eps);
     point_t data_energy(point_t p, canon_sdf_t * canon);
     point_t killing_energy(point_t p, float gamma);
@@ -62,8 +66,11 @@ private:
     //private methods
     point_t voxel_centre(point_t p);
     point_t project(point_t p);
+
     float distance(point_t p);
+    void project(point_t p, float * x, float * y);
     point_t distance_gradient(point_t p);
+
     point_t voxel_at(int i);
     point_t deformation_at(point_t p);
     int voxel_index(point_t p);

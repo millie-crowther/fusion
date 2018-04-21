@@ -40,6 +40,11 @@ sdf_t::sdf_t(depth_map_t depths, bool is_multi){
     psi_w = new function_t<float>([=](point_t p){
         return deformation_at(p).get(2);
     });
+
+    camera.fx = 525;
+    camera.fy = 525;
+    camera.cx = depths->size() / 2;
+    camera.cy = depths->at(0).size() / 2;
 }
 
 sdf_t::~sdf_t(){
@@ -53,16 +58,49 @@ sdf_t::~sdf_t(){
 
 float
 sdf_t::distance(point_t p){
-    point_t x = p + deformation_at(p);
+    // deform
+    point_t v = p + deformation_at(p);
+
+    // project point
+    float x;
+    float y;
+    project(v, &x, &y);
 
     // true signed distance
-    float phi_true = 1;// depths->at(x).at(y) - p.get_z();
+    float phi_true =  depths->at(x).at(y) - v.get(2);
     
     // divide by delta
-    float phi1 = phi_true / delta;
+    float d = phi_true / delta;
     
     // clamp to range [-1..1]
-    return phi1 / std::max(1.0f, std::abs(phi1));
+    return d / std::max(1.0f, std::abs(d));
+}
+
+void
+sdf_t::project(point_t p, float * x, float * y){
+    if (x == nullptr || y == nullptr){
+        return;
+    }
+
+    float rx = p.get(0);
+    float ry = p.get(1);
+    float z = p.get(2);
+    
+    // align deformation field so that camera is centered
+    rx -= size.get(0) / 2;
+    ry -= size.get(1) / 2;
+    
+    // adjust x, y for focal length
+    rx *= camera.fx / p.get(2);
+    ry *= camera.fy / p.get(2);
+
+    // realign with camera
+    rx += camera.cx;
+    ry += camera.cy;
+
+    // return using output parameters
+    *x = rx;
+    *y = ry;
 }
 
 point_t
