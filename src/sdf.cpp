@@ -6,6 +6,7 @@
 
 #include "matrix.h"
 #include "canon_sdf.h"
+#include <ctpl_stl.h>
 
 const point_t sdf_t::size = point_t(80);
 
@@ -88,30 +89,19 @@ sdf_t::distance(point_t p){
 
 void
 sdf_t::project(point_t p, float * x, float * y){
-    if (x == nullptr || y == nullptr){
-        return;
-    }
-
-    float rx = p.get(0);
-    float ry = p.get(1);
-    float z = p.get(2);
-    
-    // align deformation field so that camera is centered
-    rx -= size.get(0) / 2;
-    ry -= size.get(1) / 2;
-    
-    // adjust x, y for focal length
     float epsilon = 0.00001f; //prevent division by zero
+   
+    // centre on origin 
+    float rx = p.get(0) - size.get(0) / 2;
+    float ry = p.get(1) - size.get(1) / 2;
+
+    // perspective projection
     rx *= camera.fx / (p.get(2) + epsilon);
     ry *= camera.fy / (p.get(2) + epsilon);
 
-    // realign with camera
-    rx += camera.cx;
-    ry += camera.cy;
-
-    // return using output parameters
-    *x = rx;
-    *y = ry;
+    // re-centre in image
+    *x = rx + camera.cx;
+    *y = ry + camera.cy;
 }
 
 point_t
@@ -131,13 +121,11 @@ sdf_t::deformation_at(point_t p){
 
 point_t
 sdf_t::distance_gradient(point_t p){
-    function_t<float> g[3] = {
-        phi->differentiate(0),
-        phi->differentiate(1),
-        phi->differentiate(2)
-    };
-
-    return point_t(g[0](p), g[1](p), g[2](p));
+    return point_t(
+        phi->differentiate(0)(p),
+        phi->differentiate(1)(p),
+        phi->differentiate(2)(p)
+    );
 }
 
 point_t
@@ -160,7 +148,6 @@ sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous, min_params_t * ps){
 
     // rigid component
     bool should_update = true;
-    std::cout << ps->threshold_rigid << std::endl;
     for (int i = 0; should_update; i++){
 	std::cout << "Rigid transformation, iteration " << i << "..." << std::endl;
 
@@ -200,6 +187,8 @@ sdf_t::update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
 
 void
 sdf_t::update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
+    std::vector<std::future<void>> futures;
+
     for (int x = 0; x < deform_field.size(); x++){
         for (int y = 0; y < deform_field[0].size(); y++){
             for (int z = 0; z < deform_field[0][0].size(); z++){
@@ -213,7 +202,11 @@ sdf_t::update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
                 deform_field[x][y][z] -= u;
 	    }
 	}
-    }       
+    }      
+
+    for (auto future : futures){
+        future.get();
+    } 
 }
 
 point_t
