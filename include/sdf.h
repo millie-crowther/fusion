@@ -8,6 +8,7 @@
 #include "function.h"
 
 typedef std::vector<std::vector<unsigned char>> * depth_map_t;
+typedef std::vector<std::vector<std::vector<point_t>>> deform_field_t;
 
 namespace fusion_mode {
     const int NIL = -1; // only valid for first frame
@@ -55,10 +56,10 @@ private:
     // fields
     depth_map_t depths;
     bool is_multi;
-    std::vector<point_t> deform_field;
+    deform_field_t deform_field;
     camera_prop_t camera;  
  
-    point_t energy_gradient(int voxel, canon_sdf_t* c, float o_k, float o_s, float gamma, float eps);
+    point_t energy(point_t p, canon_sdf_t* c, float o_k, float o_s, float gamma, float eps);
     point_t data_energy(point_t p, canon_sdf_t * canon);
     point_t killing_energy(point_t p, float gamma);
     point_t level_set_energy(point_t p, float epsilon);
@@ -71,9 +72,7 @@ private:
     void project(point_t p, float * x, float * y);
     point_t distance_gradient(point_t p);
 
-    point_t voxel_at(int i);
     point_t deformation_at(point_t p);
-    int voxel_index(point_t p);
 };
 
 #endif
