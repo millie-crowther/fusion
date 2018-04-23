@@ -63,3 +63,12 @@ float
 point_t::get(int i) const {
     return elem[i];
 }
+
+std::string
+point_t::to_string(){
+    return "point_t(" + 
+	    std::to_string(get(0)) + ", " + 
+	    std::to_string(get(1)) + ", " + 
+	    std::to_string(get(2)) + 
+    ")";
+}

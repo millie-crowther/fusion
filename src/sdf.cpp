@@ -173,16 +173,16 @@ sdf_t::update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
         for (int y = 0; y < deform_field[0].size(); y++){
             for (int z = 0; z < deform_field[0][0].size(); z++){
                 point_t e = data_energy(point_t(x, y, z), canon);
-                point_t u = e * ps->eta_rigid;
-        
+		point_t u = e * ps->eta_rigid;
+
                 if (u.length() > ps->threshold_rigid){
                     *cont = true;
                 }
-        
+
                 deform_field[x][y][z] -= u;
 	    }
 	}
-    }       
+    }      
 }
 
 void
@@ -193,29 +193,37 @@ sdf_t::update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
         for (int y = 0; y < deform_field[0].size(); y++){
             for (int z = 0; z < deform_field[0][0].size(); z++){
                 point_t e = energy(point_t(x, y, z), canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
-                point_t u = e * ps->eta_rigid;
+                point_t u = e * ps->eta_nonrigid;
         
                 if (u.length() > ps->threshold_nonrigid){
                     *cont = true;
                 }
+
+		//if (u.length() > 0) std::cout << u.length() << std::endl;
         
                 deform_field[x][y][z] -= u;
 	    }
 	}
     }      
 
-    for (auto future : futures){
-        future.get();
+    for (int i = 0; i < futures.size(); i++){
+        futures[i].get();
     } 
 }
 
 point_t
 sdf_t::energy(point_t v, canon_sdf_t * c, float o_k, float o_s, float gamma, float eps){
      point_t p = voxel_centre(v);
-     return 
-         data_energy(p, c) +
-         killing_energy(p, gamma) * o_k +
-         level_set_energy(p, eps) * o_s;
+     //return 
+     //    data_energy(p, c) +
+     //    killing_energy(p, gamma) * o_k +
+     //    level_set_energy(p, eps) * o_s;
+     point_t d = data_energy(p, c);
+     point_t k = killing_energy(p, gamma) * o_k;
+     point_t l = level_set_energy(p, eps) * o_s;
+
+     //std::cout << d.to_string() << ' ' << k.to_string() << " " << l.to_string() << std::endl;
+     return d + k + l;
 }
 
 point_t
@@ -233,7 +241,8 @@ sdf_t::level_set_energy(point_t p, float epsilon){
 }
 
 point_t
-sdf_t::killing_energy(point_t p, float gamma){ 
+sdf_t::killing_energy(point_t p, float gamma){
+    //FIXME: i think this might be broken since it always returns the same value	
     matrix_t j = matrix_t::jacobian(*psi, p);
     std::vector<float> j_v = j.stack();
     std::vector<float> jt_v = j.transpose().stack();

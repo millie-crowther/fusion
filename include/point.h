@@ -1,7 +1,7 @@
 #ifndef POINT_H
 #define POINT_H
 
-#include <iostream>
+#include <string>
 
 class point_t {
 public:
@@ -24,6 +24,8 @@ public:
 
     // getters
     float get(int i) const;
+
+    std::string to_string();
 
 private:
     float elem[3];

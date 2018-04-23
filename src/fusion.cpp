@@ -58,13 +58,13 @@ fusion_t::fusion(int mode){
     min_params_t ps;
 
     // set defaults
-    ps.eta_rigid = 0.1f;
+    ps.eta_rigid = 0.1f; //TODO: was this right :/
     ps.eta_nonrigid = 0.1f;
     ps.omega_k = 0.5f;
     ps.omega_s = 0.2f;
     ps.gamma = 0.1f;
     ps.epsilon = 0.00005f;
-    ps.threshold_rigid = 0.1f;
+    ps.threshold_rigid = 0.2f;
     ps.threshold_nonrigid = 0.1f;
 
     std::vector<std::string> filenames;
