@@ -221,7 +221,6 @@ sdf_t::energy(point_t v, canon_sdf_t * c, float o_k, float o_s, float gamma, flo
      point_t k = killing_energy(v, gamma) * o_k;
      point_t l = level_set_energy(v, eps) * o_s;
 
-     std::cout << d.to_string() << ' ' << k.to_string() << " " << l.to_string() << std::endl;
      return d + k + l;
 }
 

@@ -28,15 +28,15 @@ class canon_sdf_t;
 
 class sdf_t {
 public:
-    // constructor
+    // constructor and destructor
     sdf_t(depth_map_t depths, bool is_multi);
     ~sdf_t();
 
-    // fusion
+    // main fusion method
     void fuse(canon_sdf_t * canon, sdf_t * previous, min_params_t * ps);
 
 protected:
-    // gradient descent
+    // gradient descent functions, overriden by GPU implementation
     virtual void update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps);
     virtual void update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps);
 
@@ -46,32 +46,32 @@ private:
     static constexpr float l = 2.0f; //in millimetres
     static const point_t size;
 
-    // functions
+    // private fields
+    depth_map_t depths;
+    bool is_multi;
+    deform_field_t deform_field;
+    camera_prop_t camera;  
+ 
+    // differentiable functions (see function.h)
     function_t<float> * phi;
     function_t<point_t> * psi;
     function_t<float> * psi_u;
     function_t<float> * psi_v;
     function_t<float> * psi_w;
 
-    // fields
-    depth_map_t depths;
-    bool is_multi;
-    deform_field_t deform_field;
-    camera_prop_t camera;  
- 
+    // energy functions 
     point_t energy(point_t p, canon_sdf_t* c, float o_k, float o_s, float gamma, float eps);
     point_t data_energy(point_t p, canon_sdf_t * canon);
     point_t killing_energy(point_t p, float gamma);
     point_t level_set_energy(point_t p, float epsilon);
 
-    //private methods
-    point_t voxel_centre(int x, int y, int z);
-    point_t project(point_t p);
-
+    // distance functions for SDF
     float distance(point_t p);
-    void project(point_t p, float * x, float * y);
     point_t distance_gradient(point_t p);
-
+    
+    // other private methods private methods
+    point_t voxel_centre(int x, int y, int z);
+    void project(point_t p, float * x, float * y);
     point_t deformation_at(point_t p);
 };
 

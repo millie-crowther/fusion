@@ -60,10 +60,28 @@ matrix_t::hessian(function_t<float> f, point_t p){
 
 matrix_t
 matrix_t::jacobian(function_t<point_t> f, point_t p){
-     
+    function_t<point_t> fs[3] = {
+        f.differentiate(0),
+        f.differentiate(1),
+        f.differentiate(2)
+    };
+
+    point_t j[3] = {
+        fs[0](p),
+        fs[1](p),
+        fs[2](p)
+    };
+
+    float ms[9] = {
+        j[0].get(0), j[1].get(0), j[2].get(0),
+        j[0].get(1), j[1].get(1), j[2].get(1),
+        j[0].get(2), j[1].get(2), j[2].get(2)
+    };
+
+    return matrix_t(ms);    
 }
 
 float
 matrix_t::get(int x, int y){
-    return y * 3 + x;
+    return m[y * 3 + x];
 }
