@@ -22,6 +22,8 @@ public:
     // vector length
     float length();
 
+    point_t hadamard(point_t o);
+
     // getters
     float get(int i) const;
 

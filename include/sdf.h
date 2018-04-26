@@ -43,7 +43,7 @@ protected:
 private:
     // constants 
     static constexpr float delta = 2.0f; //in millimetres
-    static constexpr float l = 1.0f;
+    static constexpr float l = 2.0f; //in millimetres
     static const point_t size;
 
     // functions
@@ -65,7 +65,7 @@ private:
     point_t level_set_energy(point_t p, float epsilon);
 
     //private methods
-    point_t voxel_centre(point_t p);
+    point_t voxel_centre(int x, int y, int z);
     point_t project(point_t p);
 
     float distance(point_t p);

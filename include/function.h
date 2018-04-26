@@ -9,7 +9,7 @@ template<class T>
 class function_t {
 private:
     // constants
-    static constexpr float l = 1.0f;
+    static constexpr float l = 2.0f; //in millimetres
 
     // target function
     std::function<T(point_t)> f;
