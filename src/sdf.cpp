@@ -3,17 +3,17 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-
 #include "matrix.h"
 #include "canon_sdf.h"
-#include <ctpl_stl.h>
 
-const point_t sdf_t::size = point_t(80);
-
-sdf_t::sdf_t(depth_map_t depths, bool is_multi) : pool(8) {
+sdf_t::sdf_t(depth_map_t depths, min_params_t * ps) : pool(8) {
     this->depths = depths;
-    this->is_multi = is_multi;
-    
+    this->ps = ps;   
+    ps->camera_cx = depths->size() / 2;
+    ps->camera_cy = depths->at(0).size() / 2;
+ 
+    float l = ps->voxel_length;
+    point_t size = ps->size;
     for (int x = 0; x * l < size.get(0); x++){
 	deform_field.push_back(std::vector<std::vector<point_t>>());
 
@@ -45,11 +45,6 @@ sdf_t::sdf_t(depth_map_t depths, bool is_multi) : pool(8) {
     psi_w = new function_t<float>([=](point_t p){
         return deformation_at(p).get(2);
     });
-
-    camera.fx = 525;
-    camera.fy = 525;
-    camera.cx = depths->size() / 2;
-    camera.cy = depths->at(0).size() / 2;
 }
 
 sdf_t::~sdf_t(){
@@ -89,30 +84,28 @@ sdf_t::distance(point_t p){
 
 void
 sdf_t::project(point_t p, float * x, float * y){
-    float epsilon = 0.00001f; //prevent division by zero
-   
     // centre on origin 
-    float rx = p.get(0) - size.get(0) / 2;
-    float ry = p.get(1) - size.get(1) / 2;
+    float rx = p.get(0) - ps->size.get(0) / 2;
+    float ry = p.get(1) - ps->size.get(1) / 2;
 
     // perspective projection
-    rx *= camera.fx / (p.get(2) + epsilon);
-    ry *= camera.fy / (p.get(2) + epsilon);
+    rx *= ps->camera_fx / (p.get(2) + ps->epsilon);
+    ry *= ps->camera_fy / (p.get(2) + ps->epsilon);
 
     // re-centre in image
-    *x = rx + camera.cx;
-    *y = ry + camera.cy;
+    *x = rx + ps->camera_cx;
+    *y = ry + ps->camera_cy;
 }
 
 point_t
 sdf_t::deformation_at(point_t p){
     for (int i = 0; i < 3; i++){
-	if (p.get(i) < 0 || p.get(i) >= size.get(i)){
+	if (p.get(i) < 0 || p.get(i) >= ps->size.get(i)){
             return point_t();
 	}
     }
 
-    point_t v = p / l;
+    point_t v = p / ps->voxel_length;
     int x = v.get(0);
     int y = v.get(1);
     int z = v.get(2);
@@ -130,11 +123,11 @@ sdf_t::distance_gradient(point_t p){
 
 point_t
 sdf_t::voxel_centre(int x, int y, int z){
-    return (point_t(x, y, z) + point_t(0.5f)) * l;
+    return (point_t(x, y, z) + point_t(0.5f)) * ps->voxel_length;
 }
 
 void 
-sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous, min_params_t * ps){
+sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous){
     // initialise deformation field to that of the previous frame
     for (int x = 0; x < deform_field.size(); x++){
         for (int y = 0; y < deform_field[0].size(); y++){
@@ -150,7 +143,7 @@ sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous, min_params_t * ps){
 	std::cout << "Rigid transformation, iteration " << i << "..." << std::endl;
 
         should_update = false;
-        update(true, &should_update, canon, ps);
+        update(true, &should_update, canon);
     }
     std::cout << "Rigid transformation converged." << std::endl;
 
@@ -160,13 +153,13 @@ sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous, min_params_t * ps){
         std::cout << "Non-rigid transformation, iteration " << i << "..." << std::endl;
 
         should_update = false;
-        update(false, &should_update, canon, ps);
+        update(false, &should_update, canon);
     }
     std::cout << "Non-rigid transformation converged." << std::endl;
 }
 
 void
-sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon, min_params_t * ps){
+sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
     auto f = [=](int id, int x, int y, int z){
         point_t p = voxel_centre(x, y, z);
 
@@ -187,7 +180,7 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon, min_params_t * ps
     for (int x = 0; x < deform_field.size(); x++){
         for (int y = 0; y < deform_field[0].size(); y++){
             for (int z = 0; z < deform_field[0][0].size(); z++){
-                if (is_multi){
+                if (ps->mode == fusion_mode::CPU_MULTITHREAD){
                     pool.push(f, x, y, z);        
                 } else {
 	            f(0, x, y, z);
@@ -224,7 +217,6 @@ sdf_t::level_set_energy(point_t p, float epsilon){
 
 point_t
 sdf_t::killing_energy(point_t p, float gamma){
-    //FIXME: i think this might be broken since it always returns the same value	
     matrix_t j = matrix_t::jacobian(*psi, p);
     std::vector<float> j_v = j.stack();
     std::vector<float> jt_v = j.transpose().stack();

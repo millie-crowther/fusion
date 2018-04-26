@@ -1,39 +1,33 @@
 #include "canon_sdf.h"
 
 #include <iostream>
+#include <algorithm>
 
-canon_sdf_t::canon_sdf_t(){
+canon_sdf_t::canon_sdf_t(min_params_t * ps){
+    voxel_length = ps->voxel_length;
+    size = ps->size;
 
-}
+    for (int x = 0; x * voxel_length < size.get(0); x++){
+        sdf.push_back(std::vector<std::vector<float>>());
 
-canon_sdf_t::~canon_sdf_t(){
-    while (!sdfs.empty()){
-        delete *sdfs.begin();
-        sdfs.pop_front();
+        for (int y = 0; y * voxel_length < size.get(1); y++){
+            sdf[x].push_back(std::vector<float>()); 
+
+            for (int z = 0; z * voxel_length < size.get(2); z++){
+                sdf[x][y].push_back(0);
+            }
+        }
     }
 }
 
-float
-canon_sdf_t::weight(int i){
-    return 1;
+canon_sdf_t::~canon_sdf_t(){
 }
 
 float 
 canon_sdf_t::distance(point_t p){
-    //unweighted for now
-    float r = 0;
-    for (auto sdf : sdfs){
-//        r += sdf->distance(p);
-    }
-    return r / sdfs.size();
+   return 0;
 }
 
 void
 canon_sdf_t::add_sdf(sdf_t * sdf){
-    sdfs.push_back(sdf);
-
-    if (sdfs.size() > 10){ // TODO: adjust this limit? (or remove entirely...?)
-        delete *sdfs.begin();
-        sdfs.pop_front();
-    }
 }

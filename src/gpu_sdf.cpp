@@ -30,7 +30,7 @@ level_set_energy_kernel(float * x, int w, int h, int d){
     }
 }
 */
-gpu_sdf_t::gpu_sdf_t(depth_map_t depths) : sdf_t(depths, true){
+gpu_sdf_t::gpu_sdf_t(depth_map_t depths, min_params_t * ps) : sdf_t(depths, ps){
 
 }
 
@@ -39,6 +39,6 @@ gpu_sdf_t::~gpu_sdf_t(){
 }
 
 void
-gpu_sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon, min_params_t * ps){
+gpu_sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
 
 }

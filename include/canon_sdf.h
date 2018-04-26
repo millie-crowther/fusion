@@ -3,22 +3,21 @@
 
 #include "sdf.h"
 
-#include <list>
+typedef std::vector<std::vector<std::vector<float>>> sampled_sdf_t;
 
 class canon_sdf_t {
 public:
     // constructor and destructor
-    canon_sdf_t();
+    canon_sdf_t(min_params_t * ps);
     ~canon_sdf_t();   
 
     float distance(point_t p);
-
     void add_sdf(sdf_t * sdf);
 
 private:
-    std::list<sdf_t *> sdfs;
-
-    float weight(int i);
+    sampled_sdf_t sdf;
+    float voxel_length;
+    point_t size;
 };
 
 #endif
