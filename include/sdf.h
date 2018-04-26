@@ -6,6 +6,7 @@
 #include "point.h"
 #include "min_params.h"
 #include "function.h"
+#include "ctpl_stl.h"
 
 typedef std::vector<std::vector<unsigned char>> * depth_map_t;
 typedef std::vector<std::vector<std::vector<point_t>>> deform_field_t;
@@ -37,8 +38,7 @@ public:
 
 protected:
     // gradient descent functions, overriden by GPU implementation
-    virtual void update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps);
-    virtual void update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps);
+    virtual void update(bool is_rigid, bool * cont, canon_sdf_t * canon, min_params_t * ps);
 
 private:
     // constants 
@@ -51,6 +51,7 @@ private:
     bool is_multi;
     deform_field_t deform_field;
     camera_prop_t camera;  
+    ctpl::thread_pool pool;
  
     // differentiable functions (see function.h)
     function_t<float> * phi;

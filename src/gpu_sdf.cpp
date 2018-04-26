@@ -39,11 +39,6 @@ gpu_sdf_t::~gpu_sdf_t(){
 }
 
 void
-gpu_sdf_t::update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
-
-}
-
-void
-gpu_sdf_t::update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
+gpu_sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon, min_params_t * ps){
 
 }

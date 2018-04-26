@@ -10,7 +10,7 @@
 
 const point_t sdf_t::size = point_t(80);
 
-sdf_t::sdf_t(depth_map_t depths, bool is_multi){
+sdf_t::sdf_t(depth_map_t depths, bool is_multi) : pool(8) {
     this->depths = depths;
     this->is_multi = is_multi;
     
@@ -150,7 +150,7 @@ sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous, min_params_t * ps){
 	std::cout << "Rigid transformation, iteration " << i << "..." << std::endl;
 
         should_update = false;
-        update_rigid(&should_update, canon, ps);
+        update(true, &should_update, canon, ps);
     }
     std::cout << "Rigid transformation converged." << std::endl;
 
@@ -160,68 +160,52 @@ sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous, min_params_t * ps){
         std::cout << "Non-rigid transformation, iteration " << i << "..." << std::endl;
 
         should_update = false;
-        update_nonrigid(&should_update, canon, ps);
+        update(false, &should_update, canon, ps);
     }
     std::cout << "Non-rigid transformation converged." << std::endl;
 }
 
 void
-sdf_t::update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
-    for (int x = 0; x < deform_field.size(); x++){
-        for (int y = 0; y < deform_field[0].size(); y++){
-            for (int z = 0; z < deform_field[0][0].size(); z++){
-                point_t p = voxel_centre(x, y, z);
+sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon, min_params_t * ps){
+    auto f = [=](int id, int x, int y, int z){
+        point_t p = voxel_centre(x, y, z);
 
-                point_t e = data_energy(p, canon);
-		point_t u = e * ps->eta_rigid;
-
-                if (u.length() > ps->threshold_rigid){
-                    *cont = true;
-                }
-
-                deform_field[x][y][z] -= u;
-	    }
-	}
-    }      
-}
-
-void
-sdf_t::update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
-    std::vector<std::future<void>> futures;
+        point_t e;
+        if (is_rigid){
+            e = data_energy(p, canon);
+        } else {
+            e = energy(p, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
+        }
+ 
+        point_t u = e * ps->eta;
+        if (u.length() > ps->threshold) {
+            *cont = true;
+        }
+        deform_field[x][y][z] -= u;
+    };
 
     for (int x = 0; x < deform_field.size(); x++){
         for (int y = 0; y < deform_field[0].size(); y++){
             for (int z = 0; z < deform_field[0][0].size(); z++){
-                point_t p = voxel_centre(x, y, z);
-                
-                point_t e = energy(p, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
-                point_t u = e * ps->eta_nonrigid;
-        
-                if (u.length() > ps->threshold_nonrigid){
-                    *cont = true;
+                if (is_multi){
+                    pool.push(f, x, y, z);        
+                } else {
+	            f(0, x, y, z);
                 }
-
-                deform_field[x][y][z] -= u;
-	    }
+            }
 	}
-    }      
-
-    for (int i = 0; i < futures.size(); i++){
-        futures[i].get();
-    } 
+    }
+     
+    // wait for all threads to finish
+    pool.stop(true); 
 }
 
 point_t
 sdf_t::energy(point_t v, canon_sdf_t * c, float o_k, float o_s, float gamma, float eps){
-     //return 
-     //    data_energy(p, c) +
-     //    killing_energy(p, gamma) * o_k +
-     //    level_set_energy(p, eps) * o_s;
-     point_t d = data_energy(v, c);
-     point_t k = killing_energy(v, gamma) * o_k;
-     point_t l = level_set_energy(v, eps) * o_s;
-
-     return d + k + l;
+     return 
+         data_energy(v, c) +
+         killing_energy(v, gamma) * o_k +
+         level_set_energy(v, eps) * o_s;
 }
 
 point_t

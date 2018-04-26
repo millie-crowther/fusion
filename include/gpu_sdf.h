@@ -8,8 +8,7 @@ public:
     gpu_sdf_t(depth_map_t depths);
     ~gpu_sdf_t();
 
-    void update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps) override;
-    void update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps) override;
+    void update(bool is_rigid, bool * cont, canon_sdf_t * canon, min_params_t * ps) override;
 };
 
 #endif
