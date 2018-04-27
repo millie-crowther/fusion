@@ -8,19 +8,20 @@
 #include "function.h"
 #include "ctpl_stl.h"
 
-typedef std::vector<std::vector<unsigned char>> * depth_map_t;
-typedef std::vector<std::vector<std::vector<point_t>>> deform_field_t;
-
 class canon_sdf_t;
 
 class sdf_t {
 public:
+    // types
+    typedef std::vector<std::vector<unsigned char>> * depth_map_t;
+    typedef std::vector<std::vector<std::vector<point_t>>> deform_field_t;
+
     // constructor and destructor
     sdf_t(depth_map_t depths, min_params_t * ps);
     ~sdf_t();
 
     // main fusion method
-    void fuse(canon_sdf_t * canon, sdf_t * previous);
+    void fuse(canon_sdf_t * canon);
 
     // signed distance function
     float distance(point_t p);
@@ -33,10 +34,17 @@ private:
     // constants 
     static constexpr float delta = 2.0f; //in millimetres
 
+    // singleton thread pool
+    static ctpl::thread_pool pool;
+    static std::vector<std::future<void>> futures;
+    static void pool_wait();
+
+    // static deformation field
+    static bool is_initialised;
+    static deform_field_t deform_field;
+
     // private fields
     depth_map_t depths;
-    deform_field_t deform_field;
-    ctpl::thread_pool pool;
     min_params_t * ps;
  
     // differentiable functions (see function.h)
@@ -53,7 +61,6 @@ private:
     point_t level_set_energy(point_t p, float epsilon);
     
     // other private methods private methods
-    point_t voxel_centre(int x, int y, int z);
     void project(point_t p, float * x, float * y);
     point_t deformation_at(point_t p);
     point_t distance_gradient(point_t p);

@@ -12,9 +12,10 @@ public:
     ~canon_sdf_t();   
 
     float distance(point_t p);
-    void add_sdf(sdf_t * sdf);
+    void add_sdf(sdf_t * new_sdf);
 
 private:
+    float n;
     sampled_sdf_t sdf;
     float voxel_length;
     point_t size;

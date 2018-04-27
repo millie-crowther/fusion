@@ -16,13 +16,13 @@ fusion_t::~fusion_t(){
     delete canon;
 }
 
-sdf_t *
+sdf_t 
 fusion_t::get_sdf(std::string filename, min_params_t * ps){
     std::cout << "loading depth map: " << filename << std::endl; 
 
     CImg<unsigned char> image(filename.c_str());
 
-    depth_map_t depths = new std::vector<std::vector<unsigned char>>(image.width());
+    sdf_t::depth_map_t depths = new std::vector<std::vector<unsigned char>>(image.width());
     for (int x = 0; x < image.width(); x++){
         depths->push_back(std::vector<unsigned char>(image.height()));
         
@@ -32,9 +32,9 @@ fusion_t::get_sdf(std::string filename, min_params_t * ps){
     }
 
     if (ps->mode == fusion_mode::GPU){
-        return new gpu_sdf_t(depths, ps);
+        return gpu_sdf_t(depths, ps);
     } else {
-        return new sdf_t(depths, ps);
+        return sdf_t(depths, ps);
     }
 }
 
@@ -55,21 +55,16 @@ fusion_t::fusion(min_params_t * ps){
     load_filenames(&filenames);
 
     canon = new canon_sdf_t(ps); 
-    sdf_t * initial = get_sdf(filenames[0], ps);
-    canon->add_sdf(initial);
-
-    sdf_t * previous = initial;
+    sdf_t initial = get_sdf(filenames[0], ps);
+    canon->add_sdf(&initial);
 
     for (int i = 1; i < filenames.size(); i++){
         std::cout << "Frame number: " << i << std::endl;     
 
-        sdf_t * sdf = get_sdf(filenames[i], ps);
+        sdf_t sdf = get_sdf(filenames[i], ps);
+        sdf.fuse(canon);
+        canon->add_sdf(&sdf);
 
-        sdf->fuse(canon, previous);
-        canon->add_sdf(sdf);
-        previous = sdf;
-
-        delete sdf;
         std::cout << std::endl;
     }
 }

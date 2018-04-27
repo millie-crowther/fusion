@@ -6,7 +6,20 @@
 #include "matrix.h"
 #include "canon_sdf.h"
 
-sdf_t::sdf_t(depth_map_t depths, min_params_t * ps) : pool(8) {
+ctpl::thread_pool sdf_t::pool(8);
+std::vector<std::future<void>> sdf_t::futures;
+bool sdf_t::is_initialised = false;
+sdf_t::deform_field_t sdf_t::deform_field;
+
+void
+sdf_t::pool_wait(){
+    for (int i = 0; i < futures.size(); i++){
+        futures[i].get();
+    }
+    futures.clear();
+}
+
+sdf_t::sdf_t(depth_map_t depths, min_params_t * ps){
     this->depths = depths;
     this->ps = ps;   
     ps->camera_cx = depths->size() / 2;
@@ -14,16 +27,22 @@ sdf_t::sdf_t(depth_map_t depths, min_params_t * ps) : pool(8) {
  
     float l = ps->voxel_length;
     point_t size = ps->size;
-    for (int x = 0; x * l < size.get(0); x++){
-	deform_field.push_back(std::vector<std::vector<point_t>>());
 
-        for (int y = 0; y * l < size.get(1); y++){
-            deform_field[x].push_back(std::vector<point_t>());
+    if (!is_initialised){
+        std::cout << "Initialising deformation field..." << std::endl; 
 
-            for (int z = 0; z * l < size.get(2); z++){
-                deform_field[x][y].push_back(point_t());
-            }
-        }
+        deform_field = std::vector<std::vector<std::vector<point_t>>>(
+            size.get(0) / l,
+            std::vector<std::vector<point_t>>(
+                size.get(1) / l,
+                std::vector<point_t>(
+                    size.get(2) / l, 
+                    point_t()
+                )
+            )
+        );
+ 
+        is_initialised = true;
     }
 
     phi = new function_t<float>([=](point_t p){
@@ -65,7 +84,7 @@ sdf_t::distance(point_t p){
     float x;
     float y;
     project(v, &x, &y);
-
+ 
     // in case not in frame
     // TODO: not 100% sure this is the correct way to handle this case
     if (x < 0 || y < 0 || x >= depths->size() || y >= depths->at(0).size()){
@@ -73,8 +92,12 @@ sdf_t::distance(point_t p){
     }
 
     // true signed distance
-    float phi_true =  depths->at(x).at(y) - v.get(2);
-
+    float phi_true;
+    try {
+        phi_true = depths->at(x).at(y) - v.get(2);
+    } catch (const std::out_of_range& e){
+        std::cout << "out of range at: " << p.to_string() << " + " << deformation_at(p).to_string() << std::endl;
+    }
     // divide by delta
     float d = phi_true / delta;
     
@@ -99,17 +122,21 @@ sdf_t::project(point_t p, float * x, float * y){
 
 point_t
 sdf_t::deformation_at(point_t p){
-    for (int i = 0; i < 3; i++){
-	if (p.get(i) < 0 || p.get(i) >= ps->size.get(i)){
-            return point_t();
-	}
-    }
-
     point_t v = p / ps->voxel_length;
     int x = v.get(0);
     int y = v.get(1);
     int z = v.get(2);
-    return deform_field[x][y][z];
+
+    if (
+        x < 0 || y < 0 || z < 0 || 
+        x >= deform_field.size() || 
+        y >= deform_field[x].size() || 
+        z >= deform_field[x][y].size()
+    ){
+        return point_t();
+    } else {
+        return deform_field[x][y][z];
+    }
 }
 
 point_t
@@ -121,22 +148,8 @@ sdf_t::distance_gradient(point_t p){
     );
 }
 
-point_t
-sdf_t::voxel_centre(int x, int y, int z){
-    return (point_t(x, y, z) + point_t(0.5f)) * ps->voxel_length;
-}
-
 void 
-sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous){
-    // initialise deformation field to that of the previous frame
-    for (int x = 0; x < deform_field.size(); x++){
-        for (int y = 0; y < deform_field[0].size(); y++){
-            for (int z = 0; z < deform_field[0][0].size(); z++){
-		deform_field[x][y][z] = previous->deform_field[x][y][z];
-	    }
-	}
-    }
-
+sdf_t::fuse(canon_sdf_t * canon){
     // rigid component
     bool should_update = true;
     for (int i = 0; should_update; i++){
@@ -161,14 +174,11 @@ sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous){
 void
 sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
     auto f = [=](int id, int x, int y, int z){
-        point_t p = voxel_centre(x, y, z);
+        point_t p = (point_t(x, y, z) + point_t(0.5f)) * ps->voxel_length;
 
-        point_t e;
-        if (is_rigid){
-            e = data_energy(p, canon);
-        } else {
-            e = energy(p, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
-        }
+        point_t e = is_rigid ? 
+            data_energy(p, canon) :
+            energy(p, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
  
         point_t u = e * ps->eta;
         if (u.length() > ps->threshold) {
@@ -181,7 +191,7 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
         for (int y = 0; y < deform_field[0].size(); y++){
             for (int z = 0; z < deform_field[0][0].size(); z++){
                 if (ps->mode == fusion_mode::CPU_MULTITHREAD){
-                    pool.push(f, x, y, z);        
+                    futures.push_back(pool.push(f, x, y, z));        
                 } else {
 	            f(0, x, y, z);
                 }
@@ -190,7 +200,7 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
     }
      
     // wait for all threads to finish
-    pool.stop(true); 
+    pool_wait(); 
 }
 
 point_t
