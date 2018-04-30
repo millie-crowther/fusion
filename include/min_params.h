@@ -39,6 +39,8 @@ struct min_params_t {
     float camera_fy;
     float camera_cx;
     float camera_cy;
+
+    float sdf_eta; //TODO: find a good value for this
 };
 
 #endif

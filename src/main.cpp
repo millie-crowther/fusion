@@ -15,7 +15,7 @@ int main(){
     ps.camera_fy = 525;
     ps.voxel_length = 2; 
     ps.size = point_t(80);
- 
+    ps.sdf_eta = 0.05f; 
     f.fusion(&ps);
     
     return 0;

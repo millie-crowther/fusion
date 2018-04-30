@@ -15,14 +15,17 @@ public:
 
 private:
     // types
-    struct weight_sdf_t { float phi; float omega; };
+    struct weight_sdf_t { 
+        float phi; 
+        float omega; 
+        weight_sdf_t(){ phi = 0; omega = 0; }
+    };
     typedef std::vector<std::vector<std::vector<weight_sdf_t>>> sampled_sdf_t;
     
     // private fields
-    int n;
     sampled_sdf_t sdf;
     float voxel_length;
-    point_t size;
+    float eta;
 
     // private functions
     float weight(float phi_true);
