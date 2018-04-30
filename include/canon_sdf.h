@@ -3,7 +3,6 @@
 
 #include "sdf.h"
 
-typedef std::vector<std::vector<std::vector<float>>> sampled_sdf_t;
 
 class canon_sdf_t {
 public:
@@ -15,10 +14,18 @@ public:
     void add_sdf(sdf_t * new_sdf);
 
 private:
-    float n;
+    // types
+    struct weight_sdf_t { float phi; float omega; };
+    typedef std::vector<std::vector<std::vector<weight_sdf_t>>> sampled_sdf_t;
+    
+    // private fields
+    int n;
     sampled_sdf_t sdf;
     float voxel_length;
     point_t size;
+
+    // private functions
+    float weight(float phi_true);
 };
 
 #endif

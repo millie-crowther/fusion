@@ -28,6 +28,7 @@ public:
     float get(int i) const;
 
     std::string to_string();
+    bool is_finite();
 
 private:
     float elem[3];

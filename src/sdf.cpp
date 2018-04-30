@@ -92,17 +92,15 @@ sdf_t::distance(point_t p){
     }
 
     // true signed distance
-    float phi_true;
-    try {
-        phi_true = depths->at(x).at(y) - v.get(2);
-    } catch (const std::out_of_range& e){
-        std::cout << "out of range at: " << p.to_string() << " + " << deformation_at(p).to_string() << std::endl;
-    }
+    float phi_true = depths->at(x).at(y) - v.get(2);
+
     // divide by delta
     float d = phi_true / delta;
     
     // clamp to range [-1..1]
-    return d / std::max(1.0f, std::abs(d));
+    float result = d / std::max(1.0f, std::abs(d));
+ 
+    return result;
 }
 
 void
@@ -122,21 +120,21 @@ sdf_t::project(point_t p, float * x, float * y){
 
 point_t
 sdf_t::deformation_at(point_t p){
+    // align to grid
     point_t v = p / ps->voxel_length;
-    int x = v.get(0);
-    int y = v.get(1);
-    int z = v.get(2);
 
-    if (
-        x < 0 || y < 0 || z < 0 || 
-        x >= deform_field.size() || 
-        y >= deform_field[x].size() || 
-        z >= deform_field[x][y].size()
-    ){
-        return point_t();
-    } else {
-        return deform_field[x][y][z];
-    }
+    // clamp into range of volume
+    // deformation lookups only happen outside volume when doing differentation
+    // in this case, clamp into volume, reducing derivative to zero.
+    int x = std::max(v.get(0), 0.0f);
+    int y = std::max(v.get(1), 0.0f);
+    int z = std::max(v.get(2), 0.0f);
+
+    x = std::min(x, (int) deform_field.size() - 1);
+    y = std::min(y, (int) deform_field[0].size() - 1);
+    z = std::min(z, (int) deform_field[0][0].size() - 1);
+
+    return deform_field[x][y][z];
 }
 
 point_t
@@ -152,7 +150,7 @@ void
 sdf_t::fuse(canon_sdf_t * canon){
     // rigid component
     bool should_update = true;
-    for (int i = 0; should_update; i++){
+    for (int i = 1; should_update; i++){
 	std::cout << "Rigid transformation, iteration " << i << "..." << std::endl;
 
         should_update = false;
@@ -162,7 +160,7 @@ sdf_t::fuse(canon_sdf_t * canon){
 
     // non-rigid component
     should_update = true;
-    for (int i = 0; should_update; i++){
+    for (int i = 1; should_update; i++){
         std::cout << "Non-rigid transformation, iteration " << i << "..." << std::endl;
 
         should_update = false;
@@ -183,8 +181,14 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
         point_t u = e * ps->eta;
         if (u.length() > ps->threshold) {
             *cont = true;
+//            std::cout << "  - update length greater than threshold: " << u.to_string() << std::endl;
         }
         deform_field[x][y][z] -= u;
+
+        if (!deform_field[x][y][z].is_finite()){
+            std::cout << "Error: deformation field has diverged: " << deform_field[x][y][z].to_string() << " at: " << point_t(x, y, z).to_string() << std::endl;
+            throw -1;
+        }
     };
 
     for (int x = 0; x < deform_field.size(); x++){

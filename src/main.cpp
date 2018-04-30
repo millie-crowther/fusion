@@ -10,7 +10,7 @@ int main(){
     ps.gamma = 0.1f;
     ps.epsilon = 0.00005f;
     ps.threshold = 0.1f;
-    ps.mode = fusion_mode::CPU_MULTITHREAD;
+    ps.mode = fusion_mode::CPU;
     ps.camera_fx = 525;
     ps.camera_fy = 525;
     ps.voxel_length = 2; 
