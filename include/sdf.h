@@ -31,9 +31,6 @@ protected:
     virtual void update(bool is_rigid, bool * cont, canon_sdf_t * canon);
 
 private:
-    // constants 
-    static constexpr float delta = 2.0f; //in millimetres
-
     // singleton thread pool
     static ctpl::thread_pool pool;
     static std::vector<std::future<void>> futures;

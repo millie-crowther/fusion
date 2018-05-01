@@ -95,7 +95,7 @@ sdf_t::distance(point_t p){
     float phi_true = depths->at(x).at(y) - v.get(2);
 
     // divide by delta
-    float d = phi_true / delta;
+    float d = phi_true / ps->delta;
     
     // clamp to range [-1..1]
     float result = d / std::max(1.0f, std::abs(d));
@@ -173,7 +173,6 @@ void
 sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
     auto f = [=](int id, int x, int y, int z){
         point_t p = (point_t(x, y, z) + point_t(0.5f)) * ps->voxel_length;
-
         point_t e = is_rigid ? 
             data_energy(p, canon) :
             energy(p, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
@@ -181,12 +180,12 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
         point_t u = e * ps->eta;
         if (u.length() > ps->threshold) {
             *cont = true;
-//            std::cout << "  - update length greater than threshold: " << u.to_string() << std::endl;
+            //std::cout << "  - update length GT threshold: " << u.to_string() << ".length() = " << u.length() << std::endl;
         }
         deform_field[x][y][z] -= u;
 
         if (!deform_field[x][y][z].is_finite()){
-            std::cout << "Error: deformation field has diverged: " << deform_field[x][y][z].to_string() << " at: " << point_t(x, y, z).to_string() << std::endl;
+            std::cout << "Error: deformation field has diverged: " << deform_field[x][y][z].to_string() << " at: " << p.to_string() << std::endl;
             throw -1;
         }
     };

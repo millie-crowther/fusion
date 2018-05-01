@@ -34,6 +34,8 @@ struct min_params_t {
     point_t size;
   
     float voxel_length;
+
+    float delta;
    
     float camera_fx;
     float camera_fy;
