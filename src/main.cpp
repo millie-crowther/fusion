@@ -29,7 +29,7 @@ int main(){
     ps.camera_fy = 525;
 
     // no citation for this value, just a guess!
-    ps.sdf_eta = 0.05f; 
+    ps.sdf_eta = 0.5f; 
     
     f.fusion(&ps);
     

@@ -180,7 +180,7 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
         point_t u = e * ps->eta;
         if (u.length() > ps->threshold) {
             *cont = true;
-            std::cout << "  - update length GT threshold: " << u.to_string() << ".length() = " << u.length() << std::endl;
+//            std::cout << "  - update length GT threshold: " << u.to_string() << ".length() = " << u.length() << std::endl;
         }
         deform_field[x][y][z] -= u;
 
