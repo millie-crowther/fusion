@@ -16,7 +16,6 @@
 *
 *********************************************************/
 
-
 #ifndef __ctpl_stl_thread_pool_H__
 #define __ctpl_stl_thread_pool_H__
 
@@ -30,16 +29,12 @@
 #include <mutex>
 #include <queue>
 
-
-
 // thread pool to run user's functors with signature
 //      ret func(int id, other_params)
 // where id is the index of the thread that runs the functor
 // ret is some return type
 
-
 namespace ctpl {
-
     namespace detail {
         template <typename T>
         class Queue {
@@ -69,9 +64,7 @@ namespace ctpl {
     }
 
     class thread_pool {
-
     public:
-
         thread_pool() { this->init(); }
         thread_pool(int nThreads) { this->init(); this->resize(nThreads); }
 
@@ -199,7 +192,6 @@ namespace ctpl {
 
 
     private:
-
         // deleted
         thread_pool(const thread_pool &);// = delete;
         thread_pool(thread_pool &&);// = delete;
@@ -245,7 +237,6 @@ namespace ctpl {
         std::mutex mutex;
         std::condition_variable cv;
     };
-
 }
 
 #endif // __ctpl_stl_thread_pool_H__

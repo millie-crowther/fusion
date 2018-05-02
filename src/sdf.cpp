@@ -3,27 +3,46 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-
 #include "matrix.h"
 #include "canon_sdf.h"
-#include <ctpl_stl.h>
 
-const point_t sdf_t::size = point_t(80);
+ctpl::thread_pool sdf_t::pool(8);
+std::vector<std::future<void>> sdf_t::futures;
+bool sdf_t::is_initialised = false;
+sdf_t::deform_field_t sdf_t::deform_field;
 
-sdf_t::sdf_t(depth_map_t depths, bool is_multi){
+void
+sdf_t::pool_wait(){
+    for (int i = 0; i < futures.size(); i++){
+        futures[i].get();
+    }
+    futures.clear();
+}
+
+sdf_t::sdf_t(depth_map_t depths, min_params_t * ps){
     this->depths = depths;
-    this->is_multi = is_multi;
-    
-    for (int x = 0; x < size.get(0); x += l){
-	deform_field.push_back(std::vector<std::vector<point_t>>());
+    this->ps = ps;   
+    ps->camera_cx = depths->size() / 2;
+    ps->camera_cy = depths->at(0).size() / 2;
+ 
+    float l = ps->voxel_length;
+    point_t size = ps->size;
 
-        for (int y = 0; y < size.get(1); y += l){
-            deform_field[x].push_back(std::vector<point_t>());
+    if (!is_initialised){
+        std::cout << "Initialising deformation field..." << std::endl; 
 
-            for (int z = 0; z < size.get(2); z += l){
-                deform_field[x][y].push_back(point_t());
-            }
-        }
+        deform_field = std::vector<std::vector<std::vector<point_t>>>(
+            size.get(0) / l,
+            std::vector<std::vector<point_t>>(
+                size.get(1) / l,
+                std::vector<point_t>(
+                    size.get(2) / l, 
+                    point_t()
+                )
+            )
+        );
+ 
+        is_initialised = true;
     }
 
     phi = new function_t<float>([=](point_t p){
@@ -45,11 +64,6 @@ sdf_t::sdf_t(depth_map_t depths, bool is_multi){
     psi_w = new function_t<float>([=](point_t p){
         return deformation_at(p).get(2);
     });
-
-    camera.fx = 525;
-    camera.fy = 525;
-    camera.cx = depths->size() / 2;
-    camera.cy = depths->at(0).size() / 2;
 }
 
 sdf_t::~sdf_t(){
@@ -70,7 +84,7 @@ sdf_t::distance(point_t p){
     float x;
     float y;
     project(v, &x, &y);
-
+ 
     // in case not in frame
     // TODO: not 100% sure this is the correct way to handle this case
     if (x < 0 || y < 0 || x >= depths->size() || y >= depths->at(0).size()){
@@ -78,44 +92,48 @@ sdf_t::distance(point_t p){
     }
 
     // true signed distance
-    float phi_true =  depths->at(x).at(y) - v.get(2);
+    float phi_true = depths->at(x).at(y) - v.get(2);
 
     // divide by delta
-    float d = phi_true / delta;
+    float d = phi_true / ps->delta;
     
     // clamp to range [-1..1]
-    return d / std::max(1.0f, std::abs(d));
+    float result = d / std::max(1.0f, std::abs(d));
+ 
+    return result;
 }
 
 void
 sdf_t::project(point_t p, float * x, float * y){
-    float epsilon = 0.00001f; //prevent division by zero
-   
     // centre on origin 
-    float rx = p.get(0) - size.get(0) / 2;
-    float ry = p.get(1) - size.get(1) / 2;
+    float rx = p.get(0) - ps->size.get(0) / 2;
+    float ry = p.get(1) - ps->size.get(1) / 2;
 
     // perspective projection
-    rx *= camera.fx / (p.get(2) + epsilon);
-    ry *= camera.fy / (p.get(2) + epsilon);
+    rx *= ps->camera_fx / (p.get(2) + ps->epsilon);
+    ry *= ps->camera_fy / (p.get(2) + ps->epsilon);
 
     // re-centre in image
-    *x = rx + camera.cx;
-    *y = ry + camera.cy;
+    *x = rx + ps->camera_cx;
+    *y = ry + ps->camera_cy;
 }
 
 point_t
 sdf_t::deformation_at(point_t p){
-    for (int i = 0; i < 3; i++){
-	if (p.get(i) < 0 || p.get(i) >= size.get(i)){
-            return point_t();
-	}
-    }
+    // align to grid
+    point_t v = p / ps->voxel_length;
 
-    point_t v = p / l;
-    int x = v.get(0);
-    int y = v.get(1);
-    int z = v.get(2);
+    // clamp into range of volume
+    // deformation lookups only happen outside volume when doing differentation
+    // in this case, clamp into volume, reducing derivative to zero.
+    int x = std::max(v.get(0), 0.0f);
+    int y = std::max(v.get(1), 0.0f);
+    int z = std::max(v.get(2), 0.0f);
+
+    x = std::min(x, (int) deform_field.size() - 1);
+    y = std::min(y, (int) deform_field[0].size() - 1);
+    z = std::min(z, (int) deform_field[0][0].size() - 1);
+
     return deform_field[x][y][z];
 }
 
@@ -128,102 +146,72 @@ sdf_t::distance_gradient(point_t p){
     );
 }
 
-point_t
-sdf_t::voxel_centre(point_t p){
-    point_t p_div = p / l;
-    point_t p_floor = point_t((int) p_div.get(0), (int) p_div.get(1), (int) p_div.get(2)) * l;
-    return p_floor + point_t(l / 2.0f); 
-}
-
 void 
-sdf_t::fuse(canon_sdf_t * canon, sdf_t * previous, min_params_t * ps){
-    // initialise deformation field to that of the previous frame
-    for (int x = 0; x < deform_field.size(); x++){
-        for (int y = 0; y < deform_field[0].size(); y++){
-            for (int z = 0; z < deform_field[0][0].size(); z++){
-		deform_field[x][y][z] = previous->deform_field[x][y][z];
-	    }
-	}
-    }
-
+sdf_t::fuse(canon_sdf_t * canon){
     // rigid component
     bool should_update = true;
-    for (int i = 0; should_update; i++){
+    for (int i = 1; should_update; i++){
 	std::cout << "Rigid transformation, iteration " << i << "..." << std::endl;
 
         should_update = false;
-        update_rigid(&should_update, canon, ps);
+        update(true, &should_update, canon);
     }
     std::cout << "Rigid transformation converged." << std::endl;
 
     // non-rigid component
     should_update = true;
-    for (int i = 0; should_update; i++){
+    for (int i = 1; should_update; i++){
         std::cout << "Non-rigid transformation, iteration " << i << "..." << std::endl;
 
         should_update = false;
-        update_nonrigid(&should_update, canon, ps);
+        update(false, &should_update, canon);
     }
     std::cout << "Non-rigid transformation converged." << std::endl;
 }
 
 void
-sdf_t::update_rigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
+sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
+    auto f = [=](int id, int x, int y, int z){
+        point_t p = (point_t(x, y, z) + point_t(0.5f)) * ps->voxel_length;
+        point_t e = is_rigid ? 
+            data_energy(p, canon) :
+            energy(p, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
+ 
+        point_t u = e * ps->eta;
+        if (u.length() > ps->threshold) {
+            *cont = true;
+            //std::cout << "  - update length GT threshold: " << u.to_string() << ".length() = " << u.length() << std::endl;
+        }
+        deform_field[x][y][z] -= u;
+
+        if (!deform_field[x][y][z].is_finite()){
+            std::cout << "Error: deformation field has diverged: " << deform_field[x][y][z].to_string() << " at: " << p.to_string() << std::endl;
+            throw -1;
+        }
+    };
+
     for (int x = 0; x < deform_field.size(); x++){
         for (int y = 0; y < deform_field[0].size(); y++){
             for (int z = 0; z < deform_field[0][0].size(); z++){
-                point_t e = data_energy(point_t(x, y, z), canon);
-		point_t u = e * ps->eta_rigid;
-
-                if (u.length() > ps->threshold_rigid){
-                    *cont = true;
+                if (ps->mode == fusion_mode::CPU_MULTITHREAD){
+                    futures.push_back(pool.push(f, x, y, z));        
+                } else {
+	            f(0, x, y, z);
                 }
-
-                deform_field[x][y][z] -= u;
-	    }
+            }
 	}
-    }      
-}
-
-void
-sdf_t::update_nonrigid(bool * cont, canon_sdf_t * canon, min_params_t * ps){
-    std::vector<std::future<void>> futures;
-
-    for (int x = 0; x < deform_field.size(); x++){
-        for (int y = 0; y < deform_field[0].size(); y++){
-            for (int z = 0; z < deform_field[0][0].size(); z++){
-                point_t e = energy(point_t(x, y, z), canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
-                point_t u = e * ps->eta_nonrigid;
-        
-                if (u.length() > ps->threshold_nonrigid){
-                    *cont = true;
-                }
-
-		//if (u.length() > 0) std::cout << u.length() << std::endl;
-        
-                deform_field[x][y][z] -= u;
-	    }
-	}
-    }      
-
-    for (int i = 0; i < futures.size(); i++){
-        futures[i].get();
-    } 
+    }
+     
+    // wait for all threads to finish
+    pool_wait(); 
 }
 
 point_t
 sdf_t::energy(point_t v, canon_sdf_t * c, float o_k, float o_s, float gamma, float eps){
-     point_t p = voxel_centre(v);
-     //return 
-     //    data_energy(p, c) +
-     //    killing_energy(p, gamma) * o_k +
-     //    level_set_energy(p, eps) * o_s;
-     point_t d = data_energy(p, c);
-     point_t k = killing_energy(p, gamma) * o_k;
-     point_t l = level_set_energy(p, eps) * o_s;
-
-     //std::cout << d.to_string() << ' ' << k.to_string() << " " << l.to_string() << std::endl;
-     return d + k + l;
+     return 
+         data_energy(v, c) +
+         killing_energy(v, gamma) * o_k +
+         level_set_energy(v, eps) * o_s;
 }
 
 point_t
@@ -242,7 +230,6 @@ sdf_t::level_set_energy(point_t p, float epsilon){
 
 point_t
 sdf_t::killing_energy(point_t p, float gamma){
-    //FIXME: i think this might be broken since it always returns the same value	
     matrix_t j = matrix_t::jacobian(*psi, p);
     std::vector<float> j_v = j.stack();
     std::vector<float> jt_v = j.transpose().stack();

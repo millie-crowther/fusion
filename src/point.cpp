@@ -1,6 +1,7 @@
 #include "point.h"
 
 #include <math.h>
+#include <cmath>
 
 point_t::point_t() : point_t(0, 0, 0){
 
@@ -71,4 +72,14 @@ point_t::to_string(){
 	    std::to_string(get(1)) + ", " + 
 	    std::to_string(get(2)) + 
     ")";
+}
+
+point_t 
+point_t::hadamard(point_t o){
+    return point_t(get(0) * o.get(0), get(1) * o.get(1), get(2) * o.get(2));
+}
+
+bool
+point_t::is_finite(){
+    return std::isfinite(get(0)) && std::isfinite(get(1)) && std::isfinite(get(2));
 }
