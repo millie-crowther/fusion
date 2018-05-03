@@ -45,6 +45,7 @@ private:
 
     // private functions
     float weight(float phi_true);
+    point_t normal(point_t p);
     void create_mesh(mesh_t * mesh);
     void create_mesh_for_cell(mesh_t * mesh, cell_t * cell);
 };

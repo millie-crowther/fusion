@@ -19,18 +19,14 @@ public:
     void operator+=(point_t other);
     void operator-=(point_t other);
 
-    // vector length
+    // public functions
     float length();
-
-    point_t hadamard(point_t o);
-
-    // getters
     float get(int i) const;
-
-    std::string to_string();
     bool is_finite();
+    std::string to_string();
 
 private:
+    // data
     float elem[3];
 };
 

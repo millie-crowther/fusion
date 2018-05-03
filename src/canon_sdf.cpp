@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include <fstream>
 
 canon_sdf_t::canon_sdf_t(min_params_t * ps){
     voxel_length = ps->voxel_length;
@@ -72,12 +73,10 @@ canon_sdf_t::cell_t::cell_t(point_t p, float l, canon_sdf_t * sdf){
         if (i & 1) v += point_t(0, 0, l);
         if (i & 2) v += point_t(0, l, 0);
         if (i & 4) v += point_t(l, 0, 0);
-        vertices[i] = v;
-    }
 
-    for (int i = 0; i < 8; i++){
-        samples[i] = sdf->distance(vertices[i]);
-    } 
+        vertices[i] = v;
+        samples[i] = sdf->distance(v);
+    }
 }
 
 void
@@ -94,6 +93,13 @@ canon_sdf_t::create_mesh(mesh_t * mesh){
     }
 }
 
+point_t
+canon_sdf_t::normal(point_t p){
+    return point_t(
+        //TODO
+    );
+}
+
 void
 canon_sdf_t::create_mesh_for_cell(mesh_t * mesh, cell_t * cell){
     // TODO: marching cubes
@@ -101,10 +107,73 @@ canon_sdf_t::create_mesh_for_cell(mesh_t * mesh, cell_t * cell){
 
 void
 canon_sdf_t::save_mesh(std::string filename){
+    std::cout << "Saving SDF to mesh..." << std::endl;   
+
+    // full filename
+    std::string full_name = "../data/mesh/" + filename;
+
     // create triangles
     mesh_t mesh;
     create_mesh(&mesh);
 
-    // save to correct format
-    // TODO
+    // create default material file
+    std::ofstream mat_file;
+    mat_file.open(full_name + ".mtl");
+    mat_file << 
+    "# Material file for " << filename  << std::endl <<
+    "newmtl " << filename << "Material" << std::endl <<
+    "Ns 96.078431"                      << std::endl <<
+    "Ka 1.000000 1.000000 1.000000"     << std::endl <<
+    "Kd 0.640000 0.640000 0.640000"     << std::endl <<
+    "Ks 0.500000 0.500000 0.500000"     << std::endl <<
+    "Ke 0.000000 0.000000 0.000000"     << std::endl <<
+    "Ni 1.000000"                       << std::endl <<
+    "d 1.000000"                        << std::endl <<
+    "illum 2"                           << std::endl;
+    mat_file.close();
+
+    // save to wavefront .obj format
+    std::ofstream mesh_file;
+    mesh_file.open(full_name + ".obj");
+    mesh_file <<
+    "# Geometry file for " << filename << std::endl <<
+    "mtllib " << filename << ".mtl"    << std::endl <<   
+    "o " << filename << "Object"       << std::endl;
+
+    // vertices
+    for (auto tri : mesh){
+        for (int i = 0; i < 3; i++){
+            mesh_file << "v ";
+            for (int j = 0; j < 3; j++){
+                mesh_file << tri.vertices[i].get(j) << " ";
+            }
+            mesh_file << std::endl;
+        }
+    }
+
+    // normals 
+    for (auto tri : mesh){
+        for (int i = 0; i < 3; i++){
+            mesh_file << "vn ";
+            for (int j = 0; j < 3; j++){
+                mesh_file << normal(tri.vertices[i]).get(j) << " ";
+            }
+            mesh_file << std::endl;
+        }
+    }
+
+    mesh_file << 
+    "usemtl " << filename << "Material" << std::endl <<
+    "s off"                             << std::endl;          
+
+    // faces
+    for (int i = 0; i < mesh.size(); i += 3){
+        mesh_file << "f " << std::endl;
+        for (int j = 0; j < 3; j++){
+            mesh_file << i+j << "//" << i+j << " ";
+        }
+        mesh_file << std::endl;
+    }
+
+    mesh_file.close(); 
 }
