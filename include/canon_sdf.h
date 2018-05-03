@@ -31,7 +31,7 @@ private:
     struct cell_t {
         float samples[8];
         point_t vertices[8];
-        cell_t(point_t * p, float l, canon_sdf_t * sdf);
+        cell_t(point_t p, float l, canon_sdf_t * sdf);
     };
 
     typedef std::vector<std::vector<std::vector<weight_sdf_t>>> sampled_sdf_t;
@@ -39,6 +39,7 @@ private:
     
     // private fields
     sampled_sdf_t sdf;
+    point_t size;
     float voxel_length;
     float eta;
 

@@ -67,4 +67,7 @@ fusion_t::fusion(min_params_t * ps){
 
         std::cout << std::endl;
     }
+
+    canon->save_mesh("../data/meshes/test");
+    delete canon;
 }
