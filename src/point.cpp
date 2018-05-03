@@ -27,6 +27,11 @@ point_t::length(){
 }
 
 point_t
+point_t::normalise(){
+    return (*this) / length();
+} 
+
+point_t
 point_t::operator*(float scale){
     return point_t(elem[0] * scale, elem[1] * scale, elem[2] * scale);
 }

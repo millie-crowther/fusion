@@ -21,6 +21,7 @@ public:
 
     // public functions
     float length();
+    point_t normalise();
     float get(int i) const;
     bool is_finite();
     std::string to_string();

@@ -29,8 +29,8 @@ private:
     };
 
     struct cell_t {
-        float samples[8];
-        point_t vertices[8];
+        float value[8];
+        point_t point[8];
         cell_t(point_t p, float l, canon_sdf_t * sdf);
     };
 
@@ -42,10 +42,12 @@ private:
     point_t size;
     float voxel_length;
     float eta;
+    function_t<float> * phi_global;
 
     // private functions
     float weight(float phi_true);
     point_t normal(point_t p);
+    point_t interpolate(point_t a, point_t b, float alpha, float beta);
     void create_mesh(mesh_t * mesh);
     void create_mesh_for_cell(mesh_t * mesh, cell_t * cell);
 };
