@@ -23,7 +23,6 @@ set(SOURCES
     ../src/fusion.cpp
     ../src/matrix.cpp
     ../src/gpu_sdf.cpp
-    ../src/marching_cubes.cpp
 )
 
 add_executable(fusion ${SOURCES})
