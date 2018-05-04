@@ -102,7 +102,7 @@ sdf_t::distance(point_t p){
     
     // clamp to range [-1..1]
     float result = d / std::max(1.0f, std::abs(d));
- 
+    std::cout << result << std::endl; 
     return result;
 }
 
