@@ -92,7 +92,11 @@ sdf_t::distance(point_t p){
     }
 
     // true signed distance
-    float phi_true = depths->at(x).at(y) - v.get(2);
+    int map = depths->at(x).at(y);
+    if (map == 0){
+        return 1;
+    }
+    float phi_true = map - v.get(2);
 
     // divide by delta
     float d = phi_true / ps->delta;

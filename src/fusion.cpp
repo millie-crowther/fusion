@@ -27,7 +27,8 @@ fusion_t::get_sdf(std::string filename, min_params_t * ps){
         depths->push_back(std::vector<unsigned char>(image.height()));
         
         for (int y = 0; y < image.height(); y++){
-            depths->at(x).push_back(*image.data(x, y, 0, 0));
+            int d = (int) *image.data(x, y, 0, 0);
+            depths->at(x).push_back(d);
         }
     }
 
@@ -40,7 +41,7 @@ fusion_t::get_sdf(std::string filename, min_params_t * ps){
 
 void
 fusion_t::load_filenames(std::vector<std::string> * fns){
-    for (int i = 0; i < 25; i++){
+    for (int i = 0; i < 10; i++){
         std::string padding = i < 10 ? "0" : "";
         if (i < 100){
             padding = "0" + padding;
@@ -58,8 +59,8 @@ fusion_t::fusion(min_params_t * ps){
     sdf_t initial = get_sdf(filenames[0], ps);
     canon->add_sdf(&initial);
 
-    for (int i = 0; i < filenames.size(); i++){
-        std::cout << "Frame number: " << i + 1 << std::endl;     
+    for (int i = 1; i < filenames.size(); i++){
+        std::cout << "Frame number: " << i << std::endl;     
 
         sdf_t sdf = get_sdf(filenames[i], ps);
         sdf.fuse(canon);

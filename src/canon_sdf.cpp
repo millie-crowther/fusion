@@ -39,7 +39,7 @@ canon_sdf_t::distance(point_t p){
     // TODO: not 100% these results are correct to return?
     if (x < 0 || y < 0 || z < 0 || x >= sdf.size() || y >= sdf[0].size() || z >= sdf[0][0].size()){
         return 1;
-    } else if (sdf[x][y][z].omega == 0.0f){
+    } else if (sdf[x][y][z].omega == 0){
         return sdf[x][y][z].phi;
     } else {
         return sdf[x][y][z].phi / sdf[x][y][z].omega;
@@ -72,24 +72,29 @@ canon_sdf_t::triangle_t::triangle_t(point_t a, point_t b, point_t c){
 }
 
 canon_sdf_t::cell_t::cell_t(point_t p, float l, canon_sdf_t * sdf){
-    for (int i = 0; i < 8; i++){
-        point_t v = p;
-        if (i & 1) v += point_t(l, 0, 0);
-        if (i & 2) v += point_t(0, l, 0);
-        if (i & 4) v += point_t(0, 0, l);
+    // convention used by Bourke is a bit strange but hey
+    point[0] = p + point_t(0, 0, l);
+    point[1] = p + point_t(l, 0, l);
+    point[2] = p + point_t(l, 0, 0);
+    point[3] = p;
+    point[4] = p + point_t(0, l, l);
+    point[5] = p + point_t(l);
+    point[6] = p + point_t(l, l, 0);
+    point[7] = p + point_t(0, l, 0);
 
-        point[i] = v;
-        value[i] = sdf->distance(v);
+    for (int i = 0; i < 8; i++){
+        value[i] = sdf->distance(point[i]);
     }
 }
 
 void
 canon_sdf_t::create_mesh(mesh_t * mesh){
-    for (int x = 0; x < size.get(0) - voxel_length; x += voxel_length){
-        for (int y = 0; y < size.get(1) - voxel_length; y += voxel_length){
-            for (int z = 0; z < size.get(2) - voxel_length; z += voxel_length){
-                point_t p = point_t(x, y, z) + point_t(voxel_length / 2);
-                cell_t cell(p, voxel_length, this);
+    float l = voxel_length / 2;
+    for (int x = 0; x < size.get(0) - l; x += l){
+        for (int y = 0; y < size.get(1) - l; y += l){
+            for (int z = 0; z < size.get(2) - l; z += l){
+                point_t p = point_t(x, y, z) + point_t(l / 2);
+                cell_t cell(p, l, this);
 
                 create_mesh_for_cell(mesh, &cell);
             }
@@ -171,7 +176,7 @@ canon_sdf_t::save_mesh(std::string filename){
     for (int i = 0; i < mesh.size(); i += 3){
         mesh_file << "f ";
         for (int j = 0; j < 3; j++){
-            mesh_file << i+j << "//" << i+j << " ";
+            mesh_file << i+j+1 << "//" << i+j+1 << " ";
         }
         mesh_file << std::endl;
     }
