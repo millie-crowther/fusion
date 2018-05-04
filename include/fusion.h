@@ -17,7 +17,7 @@ public:
 private:
     canon_sdf_t * canon;
 
-    void load_filenames(std::vector<std::string> * fns);
+    void load_filenames(std::vector<std::string> * fns, int frames);
     sdf_t get_sdf(std::string filename, min_params_t * ps);
 };
 

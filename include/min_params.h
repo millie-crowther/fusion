@@ -30,6 +30,7 @@ struct min_params_t {
     float threshold;
 
     int mode;
+    int frames;
 
     point_t size;
   

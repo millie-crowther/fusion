@@ -90,10 +90,10 @@ canon_sdf_t::cell_t::cell_t(point_t p, float l, canon_sdf_t * sdf){
 void
 canon_sdf_t::create_mesh(mesh_t * mesh){
     float l = voxel_length / 2;
-    for (int x = 0; x < size.get(0) - l; x += l){
-        for (int y = 0; y < size.get(1) - l; y += l){
-            for (int z = 0; z < size.get(2) - l; z += l){
-                point_t p = point_t(x, y, z) + point_t(l / 2);
+    for (int x = 0; x < size.get(0); x += l){
+        for (int y = 0; y < size.get(1); y += l){
+            for (int z = 0; z < size.get(2); z += l){
+                point_t p = point_t(x, y, z);
                 cell_t cell(p, l, this);
 
                 create_mesh_for_cell(mesh, &cell);
@@ -173,7 +173,7 @@ canon_sdf_t::save_mesh(std::string filename){
     "s off"                             << std::endl;          
 
     // faces
-    for (int i = 0; i < mesh.size(); i += 3){
+    for (int i = 0; i < mesh.size() * 3; i += 3){
         mesh_file << "f ";
         for (int j = 0; j < 3; j++){
             mesh_file << i+j+1 << "//" << i+j+1 << " ";
@@ -489,7 +489,7 @@ canon_sdf_t::interpolate(point_t a, point_t b, float alpha, float beta){
         return b;
     }    
 
-    float mu = -alpha / (beta - alpha);
+    float mu = alpha / (alpha - beta);
     
     return a + (b - a) * mu;
 }

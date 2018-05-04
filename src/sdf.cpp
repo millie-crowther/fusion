@@ -81,8 +81,7 @@ sdf_t::distance(point_t p){
     point_t v = p + deformation_at(p);
 
     // project point
-    float x;
-    float y;
+    float x, y;
     project(v, &x, &y);
  
     // in case not in frame
@@ -110,16 +109,16 @@ sdf_t::distance(point_t p){
 void
 sdf_t::project(point_t p, float * x, float * y){
     // centre on origin 
-    float rx = p.get(0) - ps->size.get(0) / 2;
-    float ry = p.get(1) - ps->size.get(1) / 2;
+    *x = p.get(0) - ps->size.get(0) / 2;
+    *y = p.get(1) - ps->size.get(1) / 2;
 
     // perspective projection
-    rx *= ps->camera_fx / (p.get(2) + ps->epsilon);
-    ry *= ps->camera_fy / (p.get(2) + ps->epsilon);
+    *x *= ps->camera_fx / (p.get(2) + ps->epsilon);
+    *y *= ps->camera_fy / (p.get(2) + ps->epsilon);
 
     // re-centre in image
-    *x = rx + ps->camera_cx;
-    *y = ry + ps->camera_cy;
+    *x += ps->camera_cx;
+    *y += ps->camera_cy;
 }
 
 point_t

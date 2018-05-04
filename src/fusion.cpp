@@ -40,8 +40,8 @@ fusion_t::get_sdf(std::string filename, min_params_t * ps){
 }
 
 void
-fusion_t::load_filenames(std::vector<std::string> * fns){
-    for (int i = 0; i < 10; i++){
+fusion_t::load_filenames(std::vector<std::string> * fns, int frames){
+    for (int i = 0; i < frames; i++){
         std::string padding = i < 10 ? "0" : "";
         if (i < 100){
             padding = "0" + padding;
@@ -53,7 +53,7 @@ fusion_t::load_filenames(std::vector<std::string> * fns){
 void
 fusion_t::fusion(min_params_t * ps){
     std::vector<std::string> filenames;
-    load_filenames(&filenames);
+    load_filenames(&filenames, ps->frames);
 
     canon = new canon_sdf_t(ps); 
     sdf_t initial = get_sdf(filenames[0], ps);
