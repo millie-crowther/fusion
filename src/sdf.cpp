@@ -85,9 +85,12 @@ sdf_t::distance(point_t p){
     project(v, &x, &y);
  
     // in case not in frame
-    // TODO: not 100% sure this is the correct way to handle this case
+    // TODO: use this mode to determine a camera frustrum which can see the entire volume
+    //       but has depth information for every voxel as well?
     if (x < 0 || y < 0 || x >= depths->size() || y >= depths->at(0).size()){
 	return 1;
+    } else {
+        return -1;
     }
 
     // true signed distance
