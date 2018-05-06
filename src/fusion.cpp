@@ -22,9 +22,9 @@ fusion_t::get_sdf(std::string filename, min_params_t * ps){
 
     CImg<unsigned char> image(filename.c_str());
 
-    sdf_t::depth_map_t depths = new std::vector<std::vector<unsigned char>>(image.width());
+    sdf_t::depth_map_t depths = new std::vector<std::vector<unsigned char>>();
     for (int x = 0; x < image.width(); x++){
-        depths->push_back(std::vector<unsigned char>(image.height()));
+        depths->push_back(std::vector<unsigned char>());
         
         for (int y = 0; y < image.height(); y++){
             int d = (int) *image.data(x, y, 0, 0);

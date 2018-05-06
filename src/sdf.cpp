@@ -22,8 +22,6 @@ sdf_t::pool_wait(){
 sdf_t::sdf_t(depth_map_t depths, min_params_t * ps){
     this->depths = depths;
     this->ps = ps;   
-    ps->camera_cx = depths->size() / 2;
-    ps->camera_cy = depths->at(0).size() / 2;
  
     float l = ps->voxel_length;
     point_t size = ps->size;
@@ -85,19 +83,18 @@ sdf_t::distance(point_t p){
     project(v, &x, &y);
  
     // in case not in frame
-    // TODO: use this mode to determine a camera frustrum which can see the entire volume
-    //       but has depth information for every voxel as well?
     if (x < 0 || y < 0 || x >= depths->size() || y >= depths->at(0).size()){
-	return 1;
-    } else {
-        return -1;
+        return 1;
     }
 
     // true signed distance
     int map = depths->at(x).at(y);
-    if (map == 0){
+/*    if (map == 0){
         return 1;
     }
+*/
+
+    map = 250;
     float phi_true = map - v.get(2);
 
     // divide by delta
@@ -105,7 +102,6 @@ sdf_t::distance(point_t p){
     
     // clamp to range [-1..1]
     float result = d / std::max(1.0f, std::abs(d));
-    std::cout << result << std::endl; 
     return result;
 }
 

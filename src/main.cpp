@@ -13,7 +13,7 @@ int main(){
     ps.threshold = 0.1f;
 
     // killing fusion paper part 4.3
-    ps.size = point_t(640, 480, 525);
+    ps.size = point_t(640, 480, 300);
 
     // killing fusion paper part 5
     ps.eta = 0.1f; // called alpha in the paper
@@ -28,6 +28,10 @@ int main(){
     // found this in the dynfu code somewhere 
     ps.camera_fx = 525.0f;
     ps.camera_fy = 525.0f;
+
+    // based on size of depth image
+    ps.camera_cx = 320;
+    ps.camera_cy = 240;
 
     // no citation for this value, just a guess!
     ps.sdf_eta = 1.0f; 
