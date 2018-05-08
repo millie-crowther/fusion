@@ -40,7 +40,7 @@ canon_sdf_t::distance(point_t p){
     if (x < 0 || y < 0 || z < 0 || x >= sdf.size() || y >= sdf[0].size() || z >= sdf[0][0].size()){
         return 1;
     } else if (sdf[x][y][z].omega == 0){
-        return sdf[x][y][z].phi;
+        return 1;//sdf[x][y][z].phi;
     } else {
         return sdf[x][y][z].phi / sdf[x][y][z].omega;
     }

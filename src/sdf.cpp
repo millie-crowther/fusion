@@ -89,12 +89,12 @@ sdf_t::distance(point_t p){
 
     // true signed distance
     int map = depths->at(x).at(y);
-/*    if (map == 0){
+    if (map == 0){
         return 1;
     }
-*/
 
-    map = 250;
+
+    map += 100; //TODO: find out why this is needed 
     float phi_true = map - v.get(2);
 
     // divide by delta

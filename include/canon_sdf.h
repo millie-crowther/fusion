@@ -20,7 +20,7 @@ private:
     struct weight_sdf_t { 
         float phi; 
         float omega; 
-        weight_sdf_t(){ phi = -1; omega = 0; }
+        weight_sdf_t(){ phi = 0; omega = 0; }
     };
     
     struct triangle_t {
