@@ -6,7 +6,7 @@ int main(){
     // declare hyper-parameters for system
     min_params_t ps;
     ps.mode = fusion_mode::CPU_MULTITHREAD;
-    ps.frames = 1;
+    ps.frames = 100;
     
     // killing fusion paper part 4.2
     ps.epsilon = 0.00005f;
@@ -19,7 +19,7 @@ int main(){
     ps.eta = 0.1f; // called alpha in the paper
     ps.omega_k = 0.5f;
     ps.omega_s = 0.2f;
-    ps.voxel_length = 10;  
+    ps.voxel_length = 16;  
     ps.gamma = 0.1f;
    
     // killing fusion paper part 3.1 
@@ -33,8 +33,8 @@ int main(){
     ps.camera_cx = 320;
     ps.camera_cy = 240;
 
-    // no citation for this value, just a guess!
-    ps.sdf_eta = 1.0f; 
+    // empirically determined
+    ps.sdf_eta = 0.6f; 
     
     f.fusion(&ps);
     

@@ -36,10 +36,11 @@ canon_sdf_t::distance(point_t p){
     int y = p.get(1) / voxel_length;
     int z = p.get(2) / voxel_length;
 
-    // TODO: not 100% these results are correct to return?
-    if (x < 0 || y < 0 || z < 0 || x >= sdf.size() || y >= sdf[0].size() || z >= sdf[0][0].size()){
-        return 1;
-    } else if (sdf[x][y][z].omega == 0){
+    if (
+	x < 0 || y < 0 || z < 0 || 
+	x >= sdf.size() || y >= sdf[0].size() || z >= sdf[0][0].size() || 
+	sdf[x][y][z].omega == 0
+    ){
         return 1;//sdf[x][y][z].phi;
     } else {
         return sdf[x][y][z].phi / sdf[x][y][z].omega;

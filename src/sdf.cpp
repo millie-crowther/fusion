@@ -93,7 +93,6 @@ sdf_t::distance(point_t p){
         return 1;
     }
 
-
     map += 100; //TODO: find out why this is needed 
     float phi_true = map - v.get(2);
 

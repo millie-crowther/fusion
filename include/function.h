@@ -10,7 +10,7 @@ private:
     // target function
     std::function<T(point_t)> f;
 
-    static constexpr float delta = 4;
+    static constexpr float delta = 16;
 
 public:
     function_t(std::function<T(point_t)> f){
