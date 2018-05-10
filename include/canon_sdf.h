@@ -47,9 +47,9 @@ private:
     // private functions
     float weight(float phi_true);
     point_t normal(point_t p);
-    point_t interpolate(point_t a, point_t b, float alpha, float beta);
-    void create_mesh(mesh_t * mesh);
-    void create_mesh_for_cell(mesh_t * mesh, cell_t * cell);
+    point_t interpolate(float isolevel, point_t a, point_t b, float alpha, float beta);
+    void create_mesh(float isolevel, mesh_t * mesh);
+    void create_mesh_for_cell(float isolevel, mesh_t * mesh, cell_t * cell);
 };
 
 #endif

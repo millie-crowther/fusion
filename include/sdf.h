@@ -13,7 +13,7 @@ class canon_sdf_t;
 class sdf_t {
 public:
     // types
-    typedef std::vector<std::vector<unsigned char>> * depth_map_t;
+    typedef std::vector<std::vector<int>> * depth_map_t;
     typedef std::vector<std::vector<std::vector<point_t>>> deform_field_t;
 
     // constructor and destructor
@@ -58,7 +58,6 @@ private:
     point_t level_set_energy(point_t p, float epsilon);
     
     // other private methods private methods
-    void project(point_t p, float * x, float * y);
     point_t deformation_at(point_t p);
     point_t distance_gradient(point_t p);
 };

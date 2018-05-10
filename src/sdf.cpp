@@ -22,7 +22,7 @@ sdf_t::pool_wait(){
 sdf_t::sdf_t(depth_map_t depths, min_params_t * ps){
     this->depths = depths;
     this->ps = ps;   
- 
+
     float l = ps->voxel_length;
     point_t size = ps->size;
 
@@ -79,8 +79,8 @@ sdf_t::distance(point_t p){
     point_t v = p + deformation_at(p);
 
     // project point
-    float x, y;
-    project(v, &x, &y);
+    int x = v.get(0);
+    int y = v.get(1);
  
     // in case not in frame
     if (x < 0 || y < 0 || x >= depths->size() || y >= depths->at(0).size()){
@@ -93,30 +93,13 @@ sdf_t::distance(point_t p){
         return 1;
     }
 
-    map += 100; //TODO: find out why this is needed 
     float phi_true = map - v.get(2);
-
     // divide by delta
     float d = phi_true / ps->delta;
     
     // clamp to range [-1..1]
     float result = d / std::max(1.0f, std::abs(d));
     return result;
-}
-
-void
-sdf_t::project(point_t p, float * x, float * y){
-    // centre on origin 
-    *x = p.get(0) - ps->size.get(0) / 2;
-    *y = p.get(1) - ps->size.get(1) / 2;
-
-    // perspective projection
-    *x *= ps->camera_fx / (p.get(2) + ps->epsilon);
-    *y *= ps->camera_fy / (p.get(2) + ps->epsilon);
-
-    // re-centre in image
-    *x += ps->camera_cx;
-    *y += ps->camera_cy;
 }
 
 point_t
@@ -181,9 +164,9 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
         point_t u = e * ps->eta;
         if (u.length() > ps->threshold) {
             *cont = true;
-//            std::cout << "  - update length GT threshold: " << u.to_string() << ".length() = " << u.length() << std::endl;
         }
         deform_field[x][y][z] -= u;
+	throw 2;
 
         if (!deform_field[x][y][z].is_finite()){
             std::cout << "Error: deformation field has diverged: " << deform_field[x][y][z].to_string() << " at: " << p.to_string() << std::endl;

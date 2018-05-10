@@ -38,10 +38,11 @@ canon_sdf_t::distance(point_t p){
 
     if (
 	x < 0 || y < 0 || z < 0 || 
-	x >= sdf.size() || y >= sdf[0].size() || z >= sdf[0][0].size() || 
-	sdf[x][y][z].omega == 0
+	x >= sdf.size() || y >= sdf[0].size() || z >= sdf[0][0].size()
     ){
-        return 1;//sdf[x][y][z].phi;
+	return 1;
+    } else if (sdf[x][y][z].omega == 0){
+        return 1;
     } else {
         return sdf[x][y][z].phi / sdf[x][y][z].omega;
     }
@@ -89,7 +90,7 @@ canon_sdf_t::cell_t::cell_t(point_t p, float l, canon_sdf_t * sdf){
 }
 
 void
-canon_sdf_t::create_mesh(mesh_t * mesh){
+canon_sdf_t::create_mesh(float isolevel, mesh_t * mesh){
     float l = voxel_length / 2;
     for (int x = 0; x < size.get(0); x += l){
         for (int y = 0; y < size.get(1); y += l){
@@ -97,7 +98,7 @@ canon_sdf_t::create_mesh(mesh_t * mesh){
                 point_t p = point_t(x, y, z);
                 cell_t cell(p, l, this);
 
-                create_mesh_for_cell(mesh, &cell);
+                create_mesh_for_cell(isolevel, mesh, &cell);
             }
         }
     }
@@ -121,7 +122,7 @@ canon_sdf_t::save_mesh(std::string filename){
 
     // create triangles
     mesh_t mesh;
-    create_mesh(&mesh);
+    create_mesh(0, &mesh);
 
     // create default material file
     std::ofstream mat_file;
@@ -481,31 +482,33 @@ int triTable[256][16] = {
 };
 
 point_t
-canon_sdf_t::interpolate(point_t a, point_t b, float alpha, float beta){
+canon_sdf_t::interpolate(float isolevel, point_t a, point_t b, float alpha, float beta){
     float eps = 0.00001f;
     
-    if (std::abs(alpha) < eps || std::abs(alpha - beta) < eps){
+    if (std::abs(isolevel - alpha) < eps){
         return a;
-    } else if (std::abs(beta) < eps){
+    } else if (std::abs(isolevel - beta) < eps){
         return b;
-    }    
+    } else if (std::abs(alpha - beta) < eps){
+	return a;
+    }
 
-    float mu = alpha / (alpha - beta);
+    float mu = (isolevel - alpha) / (beta - alpha);
     
     return a + (b - a) * mu;
 }
 
 void
-canon_sdf_t::create_mesh_for_cell(mesh_t * mesh, cell_t * cell){
+canon_sdf_t::create_mesh_for_cell(float isolevel, mesh_t * mesh, cell_t * cell){
     int cubeindex = 0;
-    if (cell->value[0] < 0) cubeindex |= 1;
-    if (cell->value[1] < 0) cubeindex |= 2;
-    if (cell->value[2] < 0) cubeindex |= 4;
-    if (cell->value[3] < 0) cubeindex |= 8;
-    if (cell->value[4] < 0) cubeindex |= 16;
-    if (cell->value[5] < 0) cubeindex |= 32;
-    if (cell->value[6] < 0) cubeindex |= 64;
-    if (cell->value[7] < 0) cubeindex |= 128;      
+    if (cell->value[0] < isolevel) cubeindex |= 1;
+    if (cell->value[1] < isolevel) cubeindex |= 2;
+    if (cell->value[2] < isolevel) cubeindex |= 4;
+    if (cell->value[3] < isolevel) cubeindex |= 8;
+    if (cell->value[4] < isolevel) cubeindex |= 16;
+    if (cell->value[5] < isolevel) cubeindex |= 32;
+    if (cell->value[6] < isolevel) cubeindex |= 64;
+    if (cell->value[7] < isolevel) cubeindex |= 128;      
 
     int edges = edgeTable[cubeindex];
 
@@ -516,40 +519,40 @@ canon_sdf_t::create_mesh_for_cell(mesh_t * mesh, cell_t * cell){
     point_t vertices[12];
 
     if (edges & 1) 
-        vertices[0] = interpolate(cell->point[0], cell->point[1], cell->value[0], cell->value[1]);
+        vertices[0] = interpolate(isolevel, cell->point[0], cell->point[1], cell->value[0], cell->value[1]);
 
     if (edges & 2) 
-        vertices[1] = interpolate(cell->point[1], cell->point[2], cell->value[1], cell->value[2]);
+        vertices[1] = interpolate(isolevel, cell->point[1], cell->point[2], cell->value[1], cell->value[2]);
 
     if (edges & 4) 
-        vertices[2] = interpolate(cell->point[2], cell->point[3], cell->value[2], cell->value[3]);
+        vertices[2] = interpolate(isolevel, cell->point[2], cell->point[3], cell->value[2], cell->value[3]);
 
     if (edges & 8) 
-        vertices[3] = interpolate(cell->point[3], cell->point[0], cell->value[3], cell->value[0]);
+        vertices[3] = interpolate(isolevel, cell->point[3], cell->point[0], cell->value[3], cell->value[0]);
 
     if (edges & 16) 
-        vertices[4] = interpolate(cell->point[4], cell->point[5], cell->value[4], cell->value[5]);
+        vertices[4] = interpolate(isolevel, cell->point[4], cell->point[5], cell->value[4], cell->value[5]);
 
     if (edges & 32) 
-        vertices[5] = interpolate(cell->point[5], cell->point[6], cell->value[5], cell->value[6]);
+        vertices[5] = interpolate(isolevel, cell->point[5], cell->point[6], cell->value[5], cell->value[6]);
 
     if (edges & 64) 
-        vertices[6] = interpolate(cell->point[6], cell->point[7], cell->value[6], cell->value[7]);
+        vertices[6] = interpolate(isolevel, cell->point[6], cell->point[7], cell->value[6], cell->value[7]);
 
     if (edges & 128) 
-        vertices[7] = interpolate(cell->point[7], cell->point[4], cell->value[7], cell->value[4]);
+        vertices[7] = interpolate(isolevel, cell->point[7], cell->point[4], cell->value[7], cell->value[4]);
 
     if (edges & 256) 
-        vertices[8] = interpolate(cell->point[0], cell->point[4], cell->value[0], cell->value[4]);
+        vertices[8] = interpolate(isolevel, cell->point[0], cell->point[4], cell->value[0], cell->value[4]);
 
     if (edges & 512) 
-        vertices[9] = interpolate(cell->point[1], cell->point[5], cell->value[1], cell->value[5]);
+        vertices[9] = interpolate(isolevel, cell->point[1], cell->point[5], cell->value[1], cell->value[5]);
 
     if (edges & 1024) 
-        vertices[10] = interpolate(cell->point[2], cell->point[6], cell->value[2], cell->value[6]);
+        vertices[10] = interpolate(isolevel, cell->point[2], cell->point[6], cell->value[2], cell->value[6]);
 
     if (edges & 2048) 
-        vertices[11] = interpolate(cell->point[3], cell->point[7], cell->value[3], cell->value[7]);
+        vertices[11] = interpolate(isolevel, cell->point[3], cell->point[7], cell->value[3], cell->value[7]);
 
 
     for (int i = 0; triTable[cubeindex][i] != -1; i += 3){
