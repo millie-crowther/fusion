@@ -108,8 +108,6 @@ sdf_t::deformation_at(point_t p){
     point_t v = p / ps->voxel_length;
 
     // clamp into range of volume
-    // deformation lookups only happen outside volume when doing differentation
-    // in this case, clamp into volume, reducing derivative to zero.
     int x = std::max(v.get(0), 0.0f);
     int y = std::max(v.get(1), 0.0f);
     int z = std::max(v.get(2), 0.0f);
@@ -155,25 +153,36 @@ sdf_t::fuse(canon_sdf_t * canon){
 
 void
 sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
+    // anonymous function to be evaluated at each voxel
     auto f = [=](int id, int x, int y, int z){
         point_t p = (point_t(x, y, z) + point_t(0.5f)) * ps->voxel_length;
+
+	if (p.get(2) < ps->near_clip){
+	    return;
+	}
+
+	// calculate energy gradient appropriate to current mode
         point_t e = is_rigid ? 
             data_energy(p, canon) :
             energy(p, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
  
+	// apply gradient descent algorithm, set continue flag if update large enough
         point_t u = e * ps->eta;
         if (u.length() > ps->threshold) {
             *cont = true;
         }
         deform_field[x][y][z] -= u;
-	throw 2;
 
+	// perform check on deformation field to see if it has diverged
         if (!deform_field[x][y][z].is_finite()){
-            std::cout << "Error: deformation field has diverged: " << deform_field[x][y][z].to_string() << " at: " << p.to_string() << std::endl;
+            std::cout << "Error: deformation field has diverged: " 
+		      << deform_field[x][y][z].to_string() 
+		      << " at: " << p.to_string() << std::endl;
             throw -1;
         }
     };
 
+    // iterate over full volume, in serial or parallel as appropriate
     for (int x = 0; x < deform_field.size(); x++){
         for (int y = 0; y < deform_field[0].size(); y++){
             for (int z = 0; z < deform_field[0][0].size(); z++){
@@ -192,7 +201,9 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
 
 point_t
 sdf_t::energy(point_t v, canon_sdf_t * c, float o_k, float o_s, float gamma, float eps){
-     return 
+    // function that calculates the three components of the energy gradient as 
+    // outlined in the killing fusion paper 
+    return 
          data_energy(v, c) +
          killing_energy(v, gamma) * o_k +
          level_set_energy(v, eps) * o_s;
@@ -200,11 +211,14 @@ sdf_t::energy(point_t v, canon_sdf_t * c, float o_k, float o_s, float gamma, flo
 
 point_t
 sdf_t::data_energy(point_t p, canon_sdf_t * canon){
+    // rigid component of energy gradient
     return distance_gradient(p) * (distance(p) - canon->distance(p));
 }
 
 point_t
 sdf_t::level_set_energy(point_t p, float epsilon){
+    // level set energy gradient component
+    // requires the magnitude of the gradient of the SDF to be unity
     matrix_t h  = matrix_t::hessian(*phi, p);
     point_t g   = distance_gradient(p);
     float alpha = (g.length() - 1) / (g.length() + epsilon);
@@ -214,6 +228,9 @@ sdf_t::level_set_energy(point_t p, float epsilon){
 
 point_t
 sdf_t::killing_energy(point_t p, float gamma){
+    // killing field energy gradient component
+    // requires the deformation field to be a killing vector field
+    
     matrix_t j = matrix_t::jacobian(*psi, p);
     std::vector<float> j_v = j.stack();
     std::vector<float> jt_v = j.transpose().stack();

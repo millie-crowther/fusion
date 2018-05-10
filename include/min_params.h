@@ -33,17 +33,11 @@ struct min_params_t {
     int frames;
 
     point_t size;
-  
     float voxel_length;
+    float near_clip;
 
     float delta;
-   
-    float camera_fx;
-    float camera_fy;
-    float camera_cx;
-    float camera_cy;
-
-    float sdf_eta; //TODO: find a good value for this
+    float sdf_eta;
 };
 
 #endif

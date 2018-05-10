@@ -5,14 +5,12 @@ int main(){
 
     // declare hyper-parameters for system
     min_params_t ps;
-    ps.mode = fusion_mode::CPU;
-    ps.frames = 2;
+    ps.mode = fusion_mode::CPU_MULTITHREAD;
+    ps.frames = 550;
     
     // killing fusion paper part 4.2
     ps.epsilon = 0.00005f;
     ps.threshold = 0.1f;
-
-    // killing fusion paper part 4.3
 
     // killing fusion paper part 5
     ps.eta = 0.1f; // called alpha in the paper
@@ -20,22 +18,15 @@ int main(){
     ps.omega_s = 0.2f;
     ps.gamma = 0.1f;
    
-    // killing fusion paper part 3.1 
-    ps.delta = ps.voxel_length * 10;
-   
-    // found this in the dynfu code somewhere 
-    ps.camera_fx = 525.0f;
-    ps.camera_fy = 525.0f;
-
-    // based on size of depth image
-    ps.camera_cx = 320;
-    ps.camera_cy = 240;
-
     // empirically determined
     ps.sdf_eta = 0.6f;
     ps.size = point_t(640, 480, 2048);
-    ps.voxel_length = 16;  
+    ps.voxel_length = 20; 
+    ps.near_clip = 512; 
     
+    // killing fusion paper part 3.1 
+    ps.delta = ps.voxel_length * 10;
+   
     f.fusion(&ps);
     
     return 0;

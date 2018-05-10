@@ -153,7 +153,10 @@ canon_sdf_t::save_mesh(std::string filename){
         for (int i = 0; i < 3; i++){
             mesh_file << "v ";
             for (int j = 0; j < 3; j++){
-                mesh_file << tri.vertices[i].get(j) << " ";
+		// centre at origin 
+		// and account for peculiarities of blender coordinates
+		point_t p = (tri.vertices[i] - size / 2) / -100;
+                mesh_file << p.get(j) << " ";
             }
             mesh_file << std::endl;
         }
@@ -163,6 +166,7 @@ canon_sdf_t::save_mesh(std::string filename){
     for (auto tri : mesh){
         for (int i = 0; i < 3; i++){
             mesh_file << "vn ";
+
             for (int j = 0; j < 3; j++){
                 mesh_file << normal(tri.vertices[i]).get(j) << " ";
             }

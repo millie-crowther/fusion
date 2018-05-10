@@ -4,8 +4,10 @@
 #include <iostream>
 #include "point.h"
 #include "gpu_sdf.h"
-
+#include <chrono>
+#include <unistd.h>
 #include "CImg.h"
+
 using namespace cimg_library;
 
 fusion_t::fusion_t(){
@@ -59,6 +61,7 @@ fusion_t::fusion(min_params_t * ps){
     sdf_t initial = get_sdf(filenames[0], ps);
     canon->add_sdf(&initial);
 
+    auto start = std::chrono::system_clock::now();
     for (int i = 1; i < filenames.size(); i++){
         std::cout << "Frame number: " << i << std::endl;     
 
@@ -67,7 +70,12 @@ fusion_t::fusion(min_params_t * ps){
         canon->add_sdf(&sdf);
 
         std::cout << std::endl;
-    }
+    } 
+    auto end = std::chrono::system_clock::now();
+    
+    float t = (end - start).count();
+    std::cout << "Total time elapsed: " << t << " seconds." << std::endl;
+    std::cout << "Average framerate: " << ps->frames / t << " frames per second." << std::endl;
 
-    canon->save_mesh("test");
+    canon->save_mesh("umbrella");
 }
