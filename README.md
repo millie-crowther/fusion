@@ -4,6 +4,6 @@ an open-source implementation of the KillingFusion paper
 
 http://campar.in.tum.de/pub/slavcheva2017cvpr/slavcheva2017cvpr.pdf
 
-currently working on a correct CPU implementation
+CPU implementation working correctly
 
-once correct behaviour is implemented will produce a GPU-accelerated version
+GPU implementation to follow (most likely in another repo)
