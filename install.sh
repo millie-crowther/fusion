@@ -4,6 +4,6 @@
 sudo apt-get install cimg-dev
 
 #
-# install cuda toolkit for thrust
+# install OpenGL Mathematics
 #
-sudo apt install nvidia-cuda-toolkit
+sudo apt-get install libglm-dev
