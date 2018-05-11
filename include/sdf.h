@@ -3,7 +3,6 @@
 
 #include <vector>
 
-#include "point.h"
 #include "min_params.h"
 #include "function.h"
 #include "ctpl_stl.h"

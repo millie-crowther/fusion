@@ -5,6 +5,7 @@
 #include <iostream>
 #include "matrix.h"
 #include "canon_sdf.h"
+#include <glm/gtx/string_cast.hpp>
 
 ctpl::thread_pool sdf_t::pool(8);
 std::vector<std::future<void>> sdf_t::futures;
@@ -30,11 +31,11 @@ sdf_t::sdf_t(depth_map_t depths, min_params_t * ps){
         std::cout << "Initialising deformation field..." << std::endl; 
 
         deform_field = std::vector<std::vector<std::vector<point_t>>>(
-            size.get(0) / l,
+            size.x / l,
             std::vector<std::vector<point_t>>(
-                size.get(1) / l,
+                size.y / l,
                 std::vector<point_t>(
-                    size.get(2) / l, 
+                    size.z / l, 
                     point_t()
                 )
             )
@@ -52,15 +53,15 @@ sdf_t::sdf_t(depth_map_t depths, min_params_t * ps){
     });
 
     psi_u = new function_t<float>([=](point_t p){
-        return deformation_at(p).get(0);
+        return deformation_at(p).x;
     });
     
     psi_v = new function_t<float>([=](point_t p){
-        return deformation_at(p).get(1);
+        return deformation_at(p).y;
     });
     
     psi_w = new function_t<float>([=](point_t p){
-        return deformation_at(p).get(2);
+        return deformation_at(p).z;
     });
 }
 
@@ -79,8 +80,8 @@ sdf_t::distance(point_t p){
     point_t v = p + deformation_at(p);
 
     // project point
-    int x = v.get(0);
-    int y = v.get(1);
+    int x = v.x;
+    int y = v.y;
  
     // in case not in frame
     if (x < 0 || y < 0 || x >= depths->size() || y >= depths->at(0).size()){
@@ -93,7 +94,7 @@ sdf_t::distance(point_t p){
         return 1;
     }
 
-    float phi_true = map - v.get(2);
+    float phi_true = map - v.z;
     // divide by delta
     float d = phi_true / ps->delta;
     
@@ -108,9 +109,9 @@ sdf_t::deformation_at(point_t p){
     point_t v = p / ps->voxel_length;
 
     // clamp into range of volume
-    int x = std::max(v.get(0), 0.0f);
-    int y = std::max(v.get(1), 0.0f);
-    int z = std::max(v.get(2), 0.0f);
+    int x = std::max(v.x, 0.0f);
+    int y = std::max(v.y, 0.0f);
+    int z = std::max(v.z, 0.0f);
 
     x = std::min(x, (int) deform_field.size() - 1);
     y = std::min(y, (int) deform_field[0].size() - 1);
@@ -157,7 +158,7 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
     auto f = [=](int id, int x, int y, int z){
         point_t p = (point_t(x, y, z) + point_t(0.5f)) * ps->voxel_length;
 
-	if (p.get(2) < ps->near_clip){
+	if (p.z < ps->near_clip){
 	    return;
 	}
 
@@ -168,16 +169,17 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
  
 	// apply gradient descent algorithm, set continue flag if update large enough
         point_t u = e * ps->eta;
-        if (u.length() > ps->threshold) {
+        if (glm::length(u) > ps->threshold) {
             *cont = true;
         }
         deform_field[x][y][z] -= u;
 
 	// perform check on deformation field to see if it has diverged
-        if (!deform_field[x][y][z].is_finite()){
+	point_t d = deform_field[x][y][z];
+        if (!std::isfinite(d.x) || !std::isfinite(d.y) || !std::isfinite(d.z)){
             std::cout << "Error: deformation field has diverged: " 
-		      << deform_field[x][y][z].to_string() 
-		      << " at: " << p.to_string() << std::endl;
+		      << glm::to_string(deform_field[x][y][z])
+		      << " at: " << glm::to_string(p) << std::endl;
             throw -1;
         }
     };
@@ -186,7 +188,7 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
     for (int x = 0; x < deform_field.size(); x++){
         for (int y = 0; y < deform_field[0].size(); y++){
             for (int z = 0; z < deform_field[0][0].size(); z++){
-                if (ps->mode == fusion_mode::CPU_MULTITHREAD){
+                if (ps->is_multithreaded){
                     futures.push_back(pool.push(f, x, y, z));        
                 } else {
 	            f(0, x, y, z);
@@ -254,5 +256,5 @@ sdf_t::killing_energy(point_t p, float gamma){
 	);
     }
 
-    return result * 2;
+    return result * 2.0f;
 }

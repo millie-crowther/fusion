@@ -17,12 +17,10 @@ include_directories(${INCLUDE_DIR})
 
 set(SOURCES
     ../src/main.cpp
-    ../src/point.cpp
     ../src/sdf.cpp
     ../src/canon_sdf.cpp
     ../src/fusion.cpp
     ../src/matrix.cpp
-    ../src/gpu_sdf.cpp
 )
 
 add_executable(fusion ${SOURCES})

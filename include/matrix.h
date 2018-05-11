@@ -1,7 +1,6 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
-#include "point.h"
 #include <vector>
 #include "function.h"
 

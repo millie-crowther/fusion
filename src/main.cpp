@@ -5,8 +5,8 @@ int main(){
 
     // declare hyper-parameters for system
     min_params_t ps;
-    ps.mode = fusion_mode::CPU_MULTITHREAD;
-    ps.frames = 550;
+    ps.is_multithreaded = true;
+    ps.frames = 5;
     
     // killing fusion paper part 4.2
     ps.epsilon = 0.00005f;

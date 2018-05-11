@@ -2,8 +2,6 @@
 
 #include "min_params.h"
 #include <iostream>
-#include "point.h"
-#include "gpu_sdf.h"
 #include <chrono>
 #include <unistd.h>
 #include "CImg.h"
@@ -34,11 +32,7 @@ fusion_t::get_sdf(std::string filename, min_params_t * ps){
         }
     }
 
-    if (ps->mode == fusion_mode::GPU){
-        return gpu_sdf_t(depths, ps);
-    } else {
-        return sdf_t(depths, ps);
-    }
+    return sdf_t(depths, ps);
 }
 
 void
@@ -72,8 +66,9 @@ fusion_t::fusion(min_params_t * ps){
         std::cout << std::endl;
     } 
     auto end = std::chrono::system_clock::now();
-    
-    float t = (end - start).count();
+
+    std::chrono::duration<float> elapsed_seconds = end - start;    
+    float t = elapsed_seconds.count();
     std::cout << "Total time elapsed: " << t << " seconds." << std::endl;
     std::cout << "Average framerate: " << ps->frames / t << " frames per second." << std::endl;
 

@@ -14,9 +14,9 @@ matrix_t::matrix_t(float * ms){
 point_t
 matrix_t::operator*(point_t v){
     return point_t(
-        m[0] * v.get(0) + m[1] * v.get(1) + m[2] * v.get(2),
-        m[3] * v.get(0) + m[4] * v.get(1) + m[5] * v.get(2),
-        m[6] * v.get(0) + m[7] * v.get(1) + m[8] * v.get(2)
+        m[0] * v.x + m[1] * v.y + m[2] * v.z,
+        m[3] * v.x + m[4] * v.y + m[5] * v.z,
+        m[6] * v.x + m[7] * v.y + m[8] * v.z
     );
 }
 
@@ -73,9 +73,9 @@ matrix_t::jacobian(function_t<point_t> f, point_t p){
     };
 
     float ms[9] = {
-        j[0].get(0), j[1].get(0), j[2].get(0),
-        j[0].get(1), j[1].get(1), j[2].get(1),
-        j[0].get(2), j[1].get(2), j[2].get(2)
+        j[0].x, j[1].x, j[2].x,
+        j[0].y, j[1].y, j[2].y,
+        j[0].z, j[1].z, j[2].z
     };
 
     return matrix_t(ms);    

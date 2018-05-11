@@ -9,13 +9,13 @@ canon_sdf_t::canon_sdf_t(min_params_t * ps){
     eta = ps->sdf_eta;    
     size = ps->size;
 
-    for (int x = 0; x * voxel_length < size.get(0); x++){
+    for (int x = 0; x * voxel_length < size.x; x++){
         sdf.push_back(std::vector<std::vector<weight_sdf_t>>());
 
-        for (int y = 0; y * voxel_length < size.get(1); y++){
+        for (int y = 0; y * voxel_length < size.y; y++){
             sdf[x].push_back(std::vector<weight_sdf_t>()); 
 
-            for (int z = 0; z * voxel_length < size.get(2); z++){
+            for (int z = 0; z * voxel_length < size.z; z++){
                 sdf[x][y].push_back(weight_sdf_t());
             }
         }
@@ -32,9 +32,9 @@ canon_sdf_t::~canon_sdf_t(){
 
 float 
 canon_sdf_t::distance(point_t p){
-    int x = p.get(0) / voxel_length;
-    int y = p.get(1) / voxel_length;
-    int z = p.get(2) / voxel_length;
+    int x = p.x / voxel_length;
+    int y = p.y / voxel_length;
+    int z = p.z / voxel_length;
 
     if (
 	x < 0 || y < 0 || z < 0 || 
@@ -92,9 +92,9 @@ canon_sdf_t::cell_t::cell_t(point_t p, float l, canon_sdf_t * sdf){
 void
 canon_sdf_t::create_mesh(float isolevel, mesh_t * mesh){
     float l = voxel_length / 2;
-    for (int x = 0; x < size.get(0); x += l){
-        for (int y = 0; y < size.get(1); y += l){
-            for (int z = 0; z < size.get(2); z += l){
+    for (int x = 0; x < size.x; x += l){
+        for (int y = 0; y < size.y; y += l){
+            for (int z = 0; z < size.z; z += l){
                 point_t p = point_t(x, y, z);
                 cell_t cell(p, l, this);
 
@@ -155,8 +155,8 @@ canon_sdf_t::save_mesh(std::string filename){
             for (int j = 0; j < 3; j++){
 		// centre at origin 
 		// and account for peculiarities of blender coordinates
-		point_t p = (tri.vertices[i] - size / 2) / -100;
-                mesh_file << p.get(j) << " ";
+		point_t p = (tri.vertices[i] - size / 2.0f) / -100.0f;
+                mesh_file << p[j] << " ";
             }
             mesh_file << std::endl;
         }
@@ -168,7 +168,7 @@ canon_sdf_t::save_mesh(std::string filename){
             mesh_file << "vn ";
 
             for (int j = 0; j < 3; j++){
-                mesh_file << normal(tri.vertices[i]).get(j) << " ";
+                mesh_file << normal(tri.vertices[i])[j] << " ";
             }
             mesh_file << std::endl;
         }

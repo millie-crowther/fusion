@@ -1,14 +1,7 @@
 #ifndef MIN_PARAMS_H
 #define MIN_PARAMS_H
 
-#include "point.h"
-
-namespace fusion_mode {
-    const int NIL = 0;
-    const int CPU = 1;
-    const int CPU_MULTITHREAD = 2;
-    const int GPU = 3;
-}
+#include "function.h"
 
 struct min_params_t {
     // learning rates for rigid and non-rigid alignment
@@ -29,7 +22,7 @@ struct min_params_t {
     // threshold for terminating registration in mm
     float threshold;
 
-    int mode;
+    bool is_multithreaded;
     int frames;
 
     point_t size;
