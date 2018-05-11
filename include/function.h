@@ -31,11 +31,9 @@ public:
         };
         point_t u = axes[axis];
 
-	auto f_grad = [=](point_t x){
+	return function_t([=](point_t x){
             return (this->f(x + u) - this->f(x - u)) / (2.0f * delta);
-        };
-
-	return function_t(f_grad);
+        });
     }
 };
 
