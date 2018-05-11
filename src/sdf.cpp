@@ -223,7 +223,7 @@ sdf_t::level_set_energy(point_t p, float epsilon){
     // requires the magnitude of the gradient of the SDF to be unity
     matrix_t h  = matrix_t::hessian(*phi, p);
     point_t g   = distance_gradient(p);
-    float alpha = (g.length() - 1) / (g.length() + epsilon);
+    float alpha = (glm::length(g) - 1) / (glm::length(g) + epsilon);
 
     return h * g * alpha;
 }
