@@ -166,13 +166,12 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
         point_t e = is_rigid ? 
             data_energy(p, canon) :
             energy(p, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
- 
+
 	// apply gradient descent algorithm, set continue flag if update large enough
-        point_t u = e * ps->eta;
-        if (glm::length(u) > ps->threshold) {
+        if (glm::length(e * ps->eta) > ps->threshold) {
             *cont = true;
         }
-        deform_field[x][y][z] -= u;
+        deform_field[x][y][z] -= e * ps->eta;
 
 	// perform check on deformation field to see if it has diverged
 	point_t d = deform_field[x][y][z];
@@ -205,10 +204,21 @@ point_t
 sdf_t::energy(point_t v, canon_sdf_t * c, float o_k, float o_s, float gamma, float eps){
     // function that calculates the three components of the energy gradient as 
     // outlined in the killing fusion paper 
-    return 
-         data_energy(v, c) +
-         killing_energy(v, gamma) * o_k +
-         level_set_energy(v, eps) * o_s;
+    //return 
+    //     data_energy(v, c) +
+    //     killing_energy(v, gamma) * o_k +
+    //     level_set_energy(v, eps) * o_s;
+     
+    auto d = data_energy(v, c);
+    auto k = killing_energy(v, gamma) * o_k;
+    auto ls = level_set_energy(v, eps) * o_s;
+    auto t = d + k + ls;
+    std::cout << "data: " << glm::to_string(d) << std::endl;
+    std::cout << "killing: " << glm::to_string(k) << std::endl;
+    std::cout << "level set: " << glm::to_string(ls) << std::endl;
+    std::cout << "total: " << glm::to_string(t) << ", " << glm::length(t) << std::endl;
+    std::cout << std::endl;
+    return t;
 }
 
 point_t

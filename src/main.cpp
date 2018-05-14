@@ -5,7 +5,7 @@ int main(){
 
     // declare hyper-parameters for system
     min_params_t ps;
-    ps.is_multithreaded = true;
+    ps.is_multithreaded = false;
     ps.frames = 550;
     
     // killing fusion paper part 4.2
