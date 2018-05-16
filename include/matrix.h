@@ -24,6 +24,7 @@ public:
     matrix_t transpose();    
     std::vector<float> stack();
     float get(int x, int y);
+    void print();
 };
 
 #endif

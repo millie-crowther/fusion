@@ -27,7 +27,6 @@ struct min_params_t {
 
     point_t size;
     float voxel_length;
-    float near_clip;
 
     float delta;
     float sdf_eta;

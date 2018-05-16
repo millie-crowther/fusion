@@ -11,6 +11,17 @@ matrix_t::matrix_t(float * ms){
     }
 }
 
+void
+matrix_t::print(){
+    for (int i = 0; i < 9; i++){
+        if (i % 3 == 0) std::cout << '[';
+        std::cout << m[i];
+        if (i % 3 != 2) std::cout << ' ';
+        if (i % 3 == 2) std::cout << ']';
+    }
+    std::cout << std::endl;
+}
+
 point_t
 matrix_t::operator*(point_t v){
     return point_t(
@@ -32,7 +43,7 @@ matrix_t::transpose(){
 
 
 std::vector<float>
-matrix_t::stack(){
+matrix_t::stack(){   
     std::vector<float> result;
 
     for (int x = 0; x < 3; x++){
@@ -46,7 +57,6 @@ matrix_t::stack(){
 
 matrix_t
 matrix_t::hessian(function_t<float> f, point_t p){
-    //TODO: check order of differentiation is correct
     float ms[9];
     for (int i = 0; i < 3; i++){
 	for (int j = 0; j < 3; j++){
@@ -55,30 +65,30 @@ matrix_t::hessian(function_t<float> f, point_t p){
             ms[i + j * 3] = dxixj(p);
 	}
     }
-    return matrix_t(ms);
+
+    auto r = matrix_t(ms);    
+    std::cout << "Hessian: " << std::endl;
+    r.print();
+    return r;
 }
 
 matrix_t
 matrix_t::jacobian(function_t<point_t> f, point_t p){
-    function_t<point_t> fs[3] = {
-        f.differentiate(0),
-        f.differentiate(1),
-        f.differentiate(2)
-    };
-
     point_t j[3] = {
-        fs[0](p),
-        fs[1](p),
-        fs[2](p)
+        f.differentiate(0)(p),
+        f.differentiate(1)(p),
+        f.differentiate(2)(p)
     };
 
-    float ms[9] = {
-        j[0].x, j[1].x, j[2].x,
-        j[0].y, j[1].y, j[2].y,
-        j[0].z, j[1].z, j[2].z
-    };
+    float ms[9];
+    for (int i = 0; i < 9; i++){
+        ms[i] = j[i % 3][i / 3];
+    }
 
-    return matrix_t(ms);    
+    auto r = matrix_t(ms);    
+    std::cout << "Jacobian: " << std::endl;
+    r.print();
+    return r;
 }
 
 float

@@ -6,6 +6,9 @@
 #include "matrix.h"
 #include "canon_sdf.h"
 #include <glm/gtx/string_cast.hpp>
+#include <atomic>
+#include <thread>
+#include <chrono>
 
 ctpl::thread_pool sdf_t::pool(8);
 std::vector<std::future<void>> sdf_t::futures;
@@ -76,6 +79,8 @@ sdf_t::~sdf_t(){
 
 float
 sdf_t::distance(point_t p){
+    // TODO: interpolate?
+
     // deform
     point_t v = p + deformation_at(p);
 
@@ -105,17 +110,25 @@ sdf_t::distance(point_t p){
 
 point_t
 sdf_t::deformation_at(point_t p){
+    // TODO: interpolate?
+
     // align to grid
     point_t v = p / ps->voxel_length;
 
     // clamp into range of volume
-    int x = std::max(v.x, 0.0f);
-    int y = std::max(v.y, 0.0f);
-    int z = std::max(v.z, 0.0f);
+    int x = v.x;
+    int y = v.y;
+    int z = v.z;
 
-    x = std::min(x, (int) deform_field.size() - 1);
-    y = std::min(y, (int) deform_field[0].size() - 1);
-    z = std::min(z, (int) deform_field[0][0].size() - 1);
+
+    if ( 
+        x < 0 || y < 0 || z < 0 ||
+        x >= deform_field.size() ||
+        y >= deform_field[x].size() ||
+        z >= deform_field[x][y].size()
+    ){
+        return point_t();
+    }
 
     return deform_field[x][y][z];
 }
@@ -154,13 +167,12 @@ sdf_t::fuse(canon_sdf_t * canon){
 
 void
 sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
-    // anonymous function to be evaluated at each voxel
-    auto f = [=](int id, int x, int y, int z){
-        point_t p = (point_t(x, y, z) + point_t(0.5f)) * ps->voxel_length;
+    std::atomic<int> n;
+    n.store(0);
 
-	if (p.z < ps->near_clip){
-	    return;
-	}
+    // anonymous function to be evaluated at each voxel
+    auto f = [&](int id, int x, int y, int z){
+        point_t p = (point_t(x, y, z) + point_t(0.5f)) * ps->voxel_length;
 
 	// calculate energy gradient appropriate to current mode
         point_t e = is_rigid ? 
@@ -168,8 +180,12 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
             energy(p, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
 
 	// apply gradient descent algorithm, set continue flag if update large enough
-        if (glm::length(e * ps->eta) > ps->threshold) {
+        if (glm::length(e) > ps->threshold) {
             *cont = true;
+            n++;
+            if (n < 50){
+                std::cout << glm::to_string(point_t(x,y,z)) << ": " <<  glm::length(e) << std::endl;
+            }
         }
         deform_field[x][y][z] -= e * ps->eta;
 
@@ -197,34 +213,30 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
     }
      
     // wait for all threads to finish
-    pool_wait(); 
+    pool_wait();
+
+    if (n > 0){
+        std::cout << n << " voxels failed to converge." << std::endl; 
+    }
+
+    std::cout << std::endl;
 }
 
 point_t
 sdf_t::energy(point_t v, canon_sdf_t * c, float o_k, float o_s, float gamma, float eps){
     // function that calculates the three components of the energy gradient as 
     // outlined in the killing fusion paper 
-    //return 
-    //     data_energy(v, c) +
-    //     killing_energy(v, gamma) * o_k +
-    //     level_set_energy(v, eps) * o_s;
-     
-    auto d = data_energy(v, c);
-    auto k = killing_energy(v, gamma) * o_k;
-    auto ls = level_set_energy(v, eps) * o_s;
-    auto t = d + k + ls;
-    std::cout << "data: " << glm::to_string(d) << std::endl;
-    std::cout << "killing: " << glm::to_string(k) << std::endl;
-    std::cout << "level set: " << glm::to_string(ls) << std::endl;
-    std::cout << "total: " << glm::to_string(t) << ", " << glm::length(t) << std::endl;
-    std::cout << std::endl;
-    return t;
+    return 
+         data_energy(v, c) +
+         killing_energy(v, gamma) * o_k +
+         level_set_energy(v, eps) * o_s;
 }
 
 point_t
 sdf_t::data_energy(point_t p, canon_sdf_t * canon){
     // rigid component of energy gradient
-    return distance_gradient(p) * (distance(p) - canon->distance(p));
+    auto r = distance_gradient(p) * (distance(p) - canon->distance(p));
+    return r;
 }
 
 point_t
@@ -242,7 +254,6 @@ point_t
 sdf_t::killing_energy(point_t p, float gamma){
     // killing field energy gradient component
     // requires the deformation field to be a killing vector field
-    
     matrix_t j = matrix_t::jacobian(*psi, p);
     std::vector<float> j_v = j.stack();
     std::vector<float> jt_v = j.transpose().stack();
