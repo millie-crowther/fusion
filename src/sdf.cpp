@@ -47,23 +47,23 @@ sdf_t::sdf_t(depth_map_t depths, min_params_t * ps){
         is_initialised = true;
     }
 
-    phi = new function_t<float>([=](point_t p){
+    phi = new function_t<float>([&](point_t p){
         return distance(p);
     });
 
-    psi = new function_t<point_t>([=](point_t p){
+    psi = new function_t<point_t>([&](point_t p){
         return deformation_at(p);
     });
 
-    psi_u = new function_t<float>([=](point_t p){
+    psi_u = new function_t<float>([&](point_t p){
         return deformation_at(p).x;
     });
     
-    psi_v = new function_t<float>([=](point_t p){
+    psi_v = new function_t<float>([&](point_t p){
         return deformation_at(p).y;
     });
     
-    psi_w = new function_t<float>([=](point_t p){
+    psi_w = new function_t<float>([&](point_t p){
         return deformation_at(p).z;
     });
 }
@@ -104,22 +104,22 @@ sdf_t::distance(point_t p){
         int y = v.y;
  
         // in case not in frame
-        if (x < 0 || y < 0 || x >= depths->size() || y >= depths->at(0).size()){
-            return 1.0f;
+        if (x < 0 || y < 0 || x >= depths->size() || y >= depths->at(x).size()){
+	    return 1.0f;
         }
 
         // true signed distance
-        int map = depths->at(x).at(y);
-        if (map == 0){
+        float map = depths->at(x).at(y);
+        if (map == 0.0f){
             return 1.0f;
         }
 
         float d = (map - v.z) / ps->delta;
         if (d > 1.0f) return 1.0f;
         if (d < -1.0f) return -1.0f;
-        return d; 
+        return d;
     };
-
+    
     // deform
     point_t p_def = p + deformation_at(p + point_t(ps->voxel_length / 2.0f));
     
@@ -138,7 +138,8 @@ sdf_t::distance(point_t p){
         values[i] = phi_raw(c * ps->voxel_length); 
     }
 
-    return interpolate3D(values, alpha.x, alpha.y, alpha.z);  
+    float result = interpolate3D(values, alpha.x, alpha.y, alpha.z);  
+    return result;
 }
 
 point_t
@@ -246,8 +247,6 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
     if (n > 0){
         std::cout << n << " voxels failed to converge." << std::endl; 
     }
-
-    std::cout << std::endl;
 }
 
 point_t

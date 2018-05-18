@@ -20,7 +20,7 @@ int main(){
    
     // empirically determined
     ps.eta_rigid = 0.5f;
-    ps.sdf_eta = 0.6f;
+    ps.sdf_eta = 0.5f;
     ps.size = point_t(640, 480, 2048);
     ps.voxel_length = 20; 
     

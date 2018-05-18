@@ -63,6 +63,10 @@ fusion_t::fusion(min_params_t * ps){
         sdf.fuse(canon);
         canon->add_sdf(&sdf);
 
+        if (i % 30 == 0){
+            canon->save_mesh("umbrella", i);
+        }
+
         std::cout << std::endl;
     } 
     auto end = std::chrono::system_clock::now();
@@ -72,5 +76,5 @@ fusion_t::fusion(min_params_t * ps){
     std::cout << "Total time elapsed: " << t << " seconds." << std::endl;
     std::cout << "Average framerate: " << ps->frames / t << " frames per second." << std::endl;
 
-    canon->save_mesh("umbrella");
+    canon->save_mesh("umbrella", ps->frames);
 }

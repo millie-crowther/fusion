@@ -13,7 +13,7 @@ public:
     float distance(point_t p);
     void add_sdf(sdf_t * new_sdf);
 
-    void save_mesh(std::string filename);
+    void save_mesh(std::string model_name, int frame);
 
 private:
     // types

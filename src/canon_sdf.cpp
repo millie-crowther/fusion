@@ -114,11 +114,18 @@ canon_sdf_t::normal(point_t p){
 }
 
 void
-canon_sdf_t::save_mesh(std::string filename){
+canon_sdf_t::save_mesh(std::string model_name, int frame){
     std::cout << "Saving SDF to mesh..." << std::endl;   
 
+    std::string padding = "";
+    if (frame < 1000) padding = "0" + padding;
+    if (frame <  100) padding = "0" + padding;
+    if (frame <   10) padding = "0" + padding;
+   
+    std::string filename = "frame" + padding + std::to_string(frame);
+
     // full filename
-    std::string full_name = "../data/mesh/" + filename;
+    std::string full_name = "../data/mesh/" + model_name + "/" + filename;
 
     // create triangles
     mesh_t mesh;
