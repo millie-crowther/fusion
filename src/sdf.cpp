@@ -78,48 +78,77 @@ sdf_t::~sdf_t(){
 }
 
 float
+sdf_t::interpolate1D(float a, float b, float alpha){
+    return a * (1 - alpha) + b * alpha;
+}
+
+float
+sdf_t::interpolate2D(float a, float b, float c, float d, float alpha, float beta){
+    float s = interpolate1D(a, b, alpha);
+    float t = interpolate1D(c, d, alpha);
+    return interpolate1D(s, t, beta);
+}
+
+float
+sdf_t::interpolate3D(float * xs, float alpha, float beta, float gamma){
+    float s = interpolate2D(xs[0], xs[1], xs[2], xs[3], alpha, beta);
+    float t = interpolate2D(xs[4], xs[5], xs[6], xs[7], alpha, beta);
+    return interpolate1D(s, t, gamma);
+}
+
+float
 sdf_t::distance(point_t p){
-    // TODO: interpolate?
+    auto phi_raw = [&](point_t v){
+        // project point
+        int x = v.x;
+        int y = v.y;
+ 
+        // in case not in frame
+        if (x < 0 || y < 0 || x >= depths->size() || y >= depths->at(0).size()){
+            return 1.0f;
+        }
+
+        // true signed distance
+        int map = depths->at(x).at(y);
+        if (map == 0){
+            return 1.0f;
+        }
+
+        float d = (map - v.z) / ps->delta;
+        if (d > 1.0f) return 1.0f;
+        if (d < -1.0f) return -1.0f;
+        return d; 
+    };
 
     // deform
-    point_t v = p + deformation_at(p);
-
-    // project point
-    int x = v.x;
-    int y = v.y;
- 
-    // in case not in frame
-    if (x < 0 || y < 0 || x >= depths->size() || y >= depths->at(0).size()){
-        return 1;
-    }
-
-    // true signed distance
-    int map = depths->at(x).at(y);
-    if (map == 0){
-        return 1;
-    }
-
-    float phi_true = map - v.z;
-    // divide by delta
-    float d = phi_true / ps->delta;
+    point_t p_def = p + deformation_at(p + point_t(ps->voxel_length / 2.0f));
     
-    // clamp to range [-1..1]
-    float result = d / std::max(1.0f, std::abs(d));
-    return result;
+    // align to grid
+    p_def = p_def / ps->voxel_length;
+    point_t p_grid = point_t((int) p_def.x, (int) p_def.y, (int) p_def.z);
+
+    // interpolate across voxel grid
+    point_t alpha = p_def - p_grid;
+    float values[8];
+    for (int i = 0; i < 8; i++){
+        point_t c = p_grid;
+        if (i & 4) c += point_t(0, 0, 1);
+        if (i & 2) c += point_t(0, 1, 0);
+        if (i & 1) c += point_t(1, 0, 0);
+        values[i] = phi_raw(c * ps->voxel_length); 
+    }
+
+    return interpolate3D(values, alpha.x, alpha.y, alpha.z);  
 }
 
 point_t
 sdf_t::deformation_at(point_t p){
-    // TODO: interpolate?
-
     // align to grid
     point_t v = p / ps->voxel_length;
 
-    // clamp into range of volume
     int x = v.x;
     int y = v.y;
     int z = v.z;
-
 
     if ( 
         x < 0 || y < 0 || z < 0 ||
@@ -172,22 +201,21 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
 
     // anonymous function to be evaluated at each voxel
     auto f = [&](int id, int x, int y, int z){
-        point_t p = (point_t(x, y, z) + point_t(0.5f)) * ps->voxel_length;
+        point_t p = point_t(x, y, z) * ps->voxel_length;
 
 	// calculate energy gradient appropriate to current mode
         point_t e = is_rigid ? 
             data_energy(p, canon) :
             energy(p, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
 
+        float eta = is_rigid ? ps->eta_rigid : ps->eta_nonrigid;
+
 	// apply gradient descent algorithm, set continue flag if update large enough
         if (glm::length(e) > ps->threshold) {
             *cont = true;
             n++;
-            if (n < 50){
-                std::cout << glm::to_string(point_t(x,y,z)) << ": " <<  glm::length(e) << std::endl;
-            }
         }
-        deform_field[x][y][z] -= e * ps->eta;
+        deform_field[x][y][z] -= e * eta;
 
 	// perform check on deformation field to see if it has diverged
 	point_t d = deform_field[x][y][z];

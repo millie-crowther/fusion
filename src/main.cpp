@@ -5,7 +5,7 @@ int main(){
 
     // declare hyper-parameters for system
     min_params_t ps;
-    ps.is_multithreaded = false;
+    ps.is_multithreaded = true;
     ps.frames = 550;
     
     // killing fusion paper part 4.2
@@ -13,12 +13,13 @@ int main(){
     ps.threshold = 0.1f;
 
     // killing fusion paper part 5
-    ps.eta = 0.2f; // called alpha in the paper
+    ps.eta_nonrigid = 0.1f; // called alpha in the paper
     ps.omega_k = 0.5f;
     ps.omega_s = 0.2f;
     ps.gamma = 0.1f;
    
     // empirically determined
+    ps.eta_rigid = 0.5f;
     ps.sdf_eta = 0.6f;
     ps.size = point_t(640, 480, 2048);
     ps.voxel_length = 20; 

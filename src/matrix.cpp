@@ -17,7 +17,7 @@ matrix_t::print(){
         if (i % 3 == 0) std::cout << '[';
         std::cout << m[i];
         if (i % 3 != 2) std::cout << ' ';
-        if (i % 3 == 2) std::cout << ']';
+        if (i % 3 == 2) std::cout << ']' << std::endl;
     }
     std::cout << std::endl;
 }
@@ -67,8 +67,6 @@ matrix_t::hessian(function_t<float> f, point_t p){
     }
 
     auto r = matrix_t(ms);    
-    std::cout << "Hessian: " << std::endl;
-    r.print();
     return r;
 }
 
@@ -86,8 +84,6 @@ matrix_t::jacobian(function_t<point_t> f, point_t p){
     }
 
     auto r = matrix_t(ms);    
-    std::cout << "Jacobian: " << std::endl;
-    r.print();
     return r;
 }
 

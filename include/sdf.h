@@ -56,6 +56,9 @@ private:
     // other private methods private methods
     point_t deformation_at(point_t p);
     point_t distance_gradient(point_t p);
+    float interpolate1D(float a, float b, float alpha);
+    float interpolate2D(float a, float b, float c, float d, float alpha, float beta);
+    float interpolate3D(float * xs, float alpha, float beta, float gamma);
 };
 
 #endif
