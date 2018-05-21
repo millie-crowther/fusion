@@ -97,38 +97,19 @@ sdf_t::interpolate3D(float * xs, float alpha, float beta, float gamma){
 }
 
 float
-sdf_t::phi_true(point_t v){
-    auto project_depth = [&](point_t p){	
-        int x = p.x + ps->voxel_length / 2.0f;
-        int y = p.y + ps->voxel_length / 2.0f;
+sdf_t::phi_true(point_t p){
+    int x = p.x;
+    int y = p.y;
 
-        if (x < 0 || y < 0 || x >= depths->size() || y >= depths->at(0).size()){
-	    return 0.0f;
-        }
-
-        int map = depths->at(x).at(y);
-        if (map == 0){
-	    return 0.0f;
-        }
-        return map - p.z;
-    };
-
-    point_t v_def = v + deformation_at(v + point_t(ps->voxel_length / 2.0f));
-    point_t p_grid = v_def / ps->voxel_length;
-    p_grid = point_t((int) p_grid.x, (int) p_grid.y, (int) p_grid.z);
-    point_t alpha = (v_def / ps->voxel_length) - p_grid; 
-    
-    float values[8];
-    for (int i = 0; i < 8; i++){
-        point_t c = p_grid;
-        if (i & 1) c += point_t(1, 0, 0);
-        if (i & 2) c += point_t(0, 1, 0);
-        if (i & 4) c += point_t(0, 0, 1);
-        values[i] = project_depth(c * ps->voxel_length); 
+    if (x < 0 || y < 0 || x >= depths->size() || y >= depths->at(0).size()){
+        return 0.0f;
     }
 
-    float result = interpolate3D(values, alpha.x, alpha.y, alpha.z);  
-    return result;
+    int map = depths->at(x).at(y);
+    if (map == 0){
+       return 0.0f;
+    }
+    return map - p.z;
 }
 
 float
@@ -215,6 +196,8 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
             *cont = true;
             n++;
         }
+
+
         deform_field[x][y][z] -= e * eta;
 
 	// perform check on deformation field to see if it has diverged
