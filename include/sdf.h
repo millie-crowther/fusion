@@ -22,6 +22,7 @@ public:
 
     // signed distance function
     float distance(point_t p);
+    float phi_true(point_t p);
 
 private:
     // singleton thread pool

@@ -97,49 +97,48 @@ sdf_t::interpolate3D(float * xs, float alpha, float beta, float gamma){
 }
 
 float
-sdf_t::distance(point_t p){
-    auto phi_raw = [&](point_t v){
-        // project point
-        int x = v.x;
-        int y = v.y;
- 
-        // in case not in frame
-        if (x < 0 || y < 0 || x >= depths->size() || y >= depths->at(x).size()){
-	    return 1.0f;
+sdf_t::phi_true(point_t v){
+    auto project_depth = [&](point_t p){	
+        int x = p.x + ps->voxel_length / 2.0f;
+        int y = p.y + ps->voxel_length / 2.0f;
+
+        if (x < 0 || y < 0 || x >= depths->size() || y >= depths->at(0).size()){
+	    return 0.0f;
         }
 
-        // true signed distance
-        float map = depths->at(x).at(y);
-        if (map == 0.0f){
-            return 1.0f;
+        int map = depths->at(x).at(y);
+        if (map == 0){
+	    return 0.0f;
         }
-
-        float d = (map - v.z) / ps->delta;
-        if (d > 1.0f) return 1.0f;
-        if (d < -1.0f) return -1.0f;
-        return d;
+        return map - p.z;
     };
-    
-    // deform
-    point_t p_def = p + deformation_at(p + point_t(ps->voxel_length / 2.0f));
-    
-    // align to grid
-    p_def = p_def / ps->voxel_length;
-    point_t p_grid = point_t((int) p_def.x, (int) p_def.y, (int) p_def.z);
 
-    // interpolate across voxel grid
-    point_t alpha = p_def - p_grid;
+    point_t v_def = v + deformation_at(v + point_t(ps->voxel_length / 2.0f));
+    point_t p_grid = v_def / ps->voxel_length;
+    p_grid = point_t((int) p_grid.x, (int) p_grid.y, (int) p_grid.z);
+    point_t alpha = (v_def / ps->voxel_length) - p_grid; 
+    
     float values[8];
     for (int i = 0; i < 8; i++){
         point_t c = p_grid;
-        if (i & 4) c += point_t(0, 0, 1);
-        if (i & 2) c += point_t(0, 1, 0);
         if (i & 1) c += point_t(1, 0, 0);
-        values[i] = phi_raw(c * ps->voxel_length); 
+        if (i & 2) c += point_t(0, 1, 0);
+        if (i & 4) c += point_t(0, 0, 1);
+        values[i] = project_depth(c * ps->voxel_length); 
     }
 
     float result = interpolate3D(values, alpha.x, alpha.y, alpha.z);  
     return result;
+}
+
+float
+sdf_t::distance(point_t p){
+    float d = phi_true(p) / ps->delta;
+    
+    if (d > 1.0f) return 1.0f;
+    if (d < -1.0f) return -1.0f;
+    
+    return d;
 }
 
 point_t

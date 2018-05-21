@@ -19,10 +19,10 @@ int main(){
     ps.gamma = 0.1f;
    
     // empirically determined
-    ps.eta_rigid = 0.5f;
-    ps.sdf_eta = 0.5f;
+    ps.eta_rigid = 1.0f;
+    ps.sdf_eta = 100;
     ps.size = point_t(640, 480, 2048);
-    ps.voxel_length = 20; 
+    ps.voxel_length = 16; 
     
     // killing fusion paper part 3.1 
     ps.delta = ps.voxel_length * 10;

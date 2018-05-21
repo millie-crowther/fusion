@@ -53,10 +53,11 @@ canon_sdf_t::add_sdf(sdf_t * new_sdf){
     for (int x = 0; x < sdf.size(); x++){
         for (int y = 0; y < sdf[0].size(); y++){
             for (int z = 0; z < sdf[0][0].size(); z++){
-                point_t p = (point_t(x, y, z) + point_t(0.5f)) * voxel_length;
+                point_t p = point_t(x, y, z) * voxel_length;
                 float phi = new_sdf->distance(p);
-                sdf[x][y][z].phi += phi * weight(phi);
-                sdf[x][y][z].omega += weight(phi);
+		float w = weight(new_sdf->phi_true(p));
+                sdf[x][y][z].phi += phi * w;
+                sdf[x][y][z].omega += w;
             }
         }
     } 

@@ -54,6 +54,7 @@ fusion_t::fusion(min_params_t * ps){
     canon = new canon_sdf_t(ps); 
     sdf_t initial = get_sdf(filenames[0], ps);
     canon->add_sdf(&initial);
+    canon->save_mesh("umbrella", 0);
 
     auto start = std::chrono::system_clock::now();
     for (int i = 1; i < filenames.size(); i++){
@@ -63,7 +64,7 @@ fusion_t::fusion(min_params_t * ps){
         sdf.fuse(canon);
         canon->add_sdf(&sdf);
 
-        if (i % 30 == 0){
+        if (true){//i % 30 == 0){
             canon->save_mesh("umbrella", i);
         }
 
