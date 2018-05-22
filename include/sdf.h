@@ -18,7 +18,7 @@ public:
     ~sdf_t();
 
     // main fusion method
-    void fuse(canon_sdf_t * canon);
+    void fuse(bool is_rigid, canon_sdf_t * canon);
 
     // signed distance function
     float distance(point_t p);
@@ -28,7 +28,6 @@ private:
     // singleton thread pool
     static ctpl::thread_pool pool;
     static std::vector<std::future<void>> futures;
-    static void pool_wait();
 
     // static deformation field
     static bool is_initialised;
@@ -45,8 +44,7 @@ private:
     function_t<float> * psi_v;
     function_t<float> * psi_w;
 
-    // gradient descent functions, overriden by GPU implementation
-    void update(bool is_rigid, bool * cont, canon_sdf_t * canon);
+    // gradient descent functions
 
     // energy functions 
     point_t energy(point_t p, canon_sdf_t * c, float o_k, float o_s, float gamma, float eps);

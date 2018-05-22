@@ -15,14 +15,6 @@ std::vector<std::future<void>> sdf_t::futures;
 bool sdf_t::is_initialised = false;
 sdf_t::deform_field_t sdf_t::deform_field;
 
-void
-sdf_t::pool_wait(){
-    for (int i = 0; i < futures.size(); i++){
-        futures[i].get();
-    }
-    futures.clear();
-}
-
 sdf_t::sdf_t(depth_map_t depths, min_params_t * ps){
     this->depths = depths;
     this->ps = ps;   
@@ -43,7 +35,7 @@ sdf_t::sdf_t(depth_map_t depths, min_params_t * ps){
                 )
             )
         );
- 
+
         is_initialised = true;
     }
 
@@ -98,37 +90,35 @@ sdf_t::interpolate3D(float * xs, float alpha, float beta, float gamma){
 
 float
 sdf_t::phi_true(point_t v){
-    auto project_depth = [&](point_t p){	
-        int x = p.x + ps->voxel_length / 2.0f;
-        int y = p.y + ps->voxel_length / 2.0f;
+    auto phi_raw = [&](point_t p){
+        int x = p.x;
+        int y = p.y;
 
-        if (x < 0 || y < 0 || x >= depths->size() || y >= depths->at(0).size()){
-	    return 0.0f;
-        }
+        if (x < 0) x = 0;
+        if (y < 0) y = 0;
+        if (x >= depths->size()) x = depths->size() - 1;
+        if (y >= depths->at(0).size()) y = depths->at(0).size() - 1;
 
         int map = depths->at(x).at(y);
         if (map == 0){
-	    return 0.0f;
+            return ps->delta;
         }
         return map - p.z;
     };
+  
+    v += deformation_at(v);
+    point_t v_grid = point_t((int) v.x, (int) v.y, (int) v.z);
+    point_t alpha = v - v_grid;
 
-    point_t v_def = v + deformation_at(v + point_t(ps->voxel_length / 2.0f));
-    point_t p_grid = v_def / ps->voxel_length;
-    p_grid = point_t((int) p_grid.x, (int) p_grid.y, (int) p_grid.z);
-    point_t alpha = (v_def / ps->voxel_length) - p_grid; 
-    
     float values[8];
     for (int i = 0; i < 8; i++){
-        point_t c = p_grid;
+        point_t c = v_grid;
         if (i & 1) c += point_t(1, 0, 0);
         if (i & 2) c += point_t(0, 1, 0);
         if (i & 4) c += point_t(0, 0, 1);
-        values[i] = project_depth(c * ps->voxel_length); 
+        values[i] = phi_raw(c);
     }
-
-    float result = interpolate3D(values, alpha.x, alpha.y, alpha.z);  
-    return result;
+    return interpolate3D(values, alpha.x, alpha.y, alpha.z);
 }
 
 float
@@ -149,81 +139,58 @@ sdf_t::deformation_at(point_t p){
     int x = v.x;
     int y = v.y;
     int z = v.z;
-
-    if ( 
+   
+    if (
         x < 0 || y < 0 || z < 0 ||
         x >= deform_field.size() ||
-        y >= deform_field[x].size() ||
-        z >= deform_field[x][y].size()
+        y >= deform_field[0].size() ||
+        z >= deform_field[0][0].size()
     ){
         return point_t();
+    } else {
+        return deform_field[x][y][z];
     }
-
-    return deform_field[x][y][z];
 }
 
 point_t
 sdf_t::distance_gradient(point_t p){
+    float l = 1;
     return point_t(
-        phi->differentiate(0)(p),
-        phi->differentiate(1)(p),
-        phi->differentiate(2)(p)
-    );
-}
-
-void 
-sdf_t::fuse(canon_sdf_t * canon){
-    // rigid component
-    bool should_update = true;
-    for (int i = 1; should_update; i++){
-	std::cout << "Rigid transformation, iteration " << i << "..." << std::endl;
-
-        should_update = false;
-        update(true, &should_update, canon);
-    }
-    std::cout << "Rigid transformation converged." << std::endl;
-
-    // non-rigid component
-    should_update = true;
-    for (int i = 1; should_update; i++){
-        std::cout << "Non-rigid transformation, iteration " << i << "..." << std::endl;
-
-        should_update = false;
-        update(false, &should_update, canon);
-    }
-    std::cout << "Non-rigid transformation converged." << std::endl;
+        distance(p + point_t(l, 0, 0)) - distance(p - point_t(l, 0, 0)),
+        distance(p + point_t(0, l, 0)) - distance(p - point_t(0, l, 0)),
+        distance(p + point_t(0, 0, l)) - distance(p - point_t(0, 0, l))
+    ) / (2 * l);
 }
 
 void
-sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
+sdf_t::fuse(bool is_rigid, canon_sdf_t * canon){
     std::atomic<int> n;
     n.store(0);
+    const int total = deform_field.size() * deform_field[0].size() * deform_field[0][0].size();
+    std::atomic<int> last_msg;
+    last_msg.store(0);
 
     // anonymous function to be evaluated at each voxel
     auto f = [&](int id, int x, int y, int z){
-        point_t p = point_t(x, y, z) * ps->voxel_length;
+        point_t p = (point_t(x, y, z) + point_t(0.5f)) * ps->voxel_length;
 
-	// calculate energy gradient appropriate to current mode
-        point_t e = is_rigid ? 
-            data_energy(p, canon) :
-            energy(p, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
+        bool quit = false;
+        for (int i = 0; !quit && i < ps->max_iterations; i++){
+            point_t e = is_rigid ? 
+                data_energy(p, canon) :
+                energy(p, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
 
-        float eta = is_rigid ? ps->eta_rigid : ps->eta_nonrigid;
-
-	// apply gradient descent algorithm, set continue flag if update large enough
-        if (glm::length(e) > ps->threshold) {
-            *cont = true;
-            n++;
-        }
-        deform_field[x][y][z] -= e * eta;
-
-	// perform check on deformation field to see if it has diverged
-	point_t d = deform_field[x][y][z];
-        if (!std::isfinite(d.x) || !std::isfinite(d.y) || !std::isfinite(d.z)){
-            std::cout << "Error: deformation field has diverged: " 
-		      << glm::to_string(deform_field[x][y][z])
-		      << " at: " << glm::to_string(p) << std::endl;
-            throw -1;
+            deform_field[x][y][z] -= e * ps->eta;
+            
+            if (glm::length(e) <= ps->threshold) {
+                quit = true;
+                n++;
+                int percent = n * 100 / total;
+                if (percent % 10 == 0 && last_msg != percent){
+                    last_msg.store(percent);
+                    std::cout << percent << "%" << std::endl;
+                }
+            } 
         }
     };
 
@@ -232,7 +199,7 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
         for (int y = 0; y < deform_field[0].size(); y++){
             for (int z = 0; z < deform_field[0][0].size(); z++){
                 if (ps->is_multithreaded){
-                    futures.push_back(pool.push(f, x, y, z));        
+                    futures.push_back(pool.push(f, x, y, z));
                 } else {
 	            f(0, x, y, z);
                 }
@@ -241,11 +208,10 @@ sdf_t::update(bool is_rigid, bool * cont, canon_sdf_t * canon){
     }
      
     // wait for all threads to finish
-    pool_wait();
-
-    if (n > 0){
-        std::cout << n << " voxels failed to converge." << std::endl; 
+    for (int i = 0; ps->is_multithreaded && i < futures.size(); i++){
+        futures[i].get();
     }
+    futures.clear();
 }
 
 point_t

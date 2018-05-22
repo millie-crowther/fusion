@@ -22,7 +22,7 @@ public:
     }
 
     function_t differentiate(int axis){
-        const float delta = 16;
+        const float delta = 8;
 
         point_t axes[3] = {
             point_t(delta, 0, 0),
