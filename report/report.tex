@@ -2,10 +2,10 @@
 
 % some definitions for the title page
 \newcommand{\reporttitle}{asdfasdf}
-\newcommand{\reportauthor}{Your name}
+\newcommand{\reportauthor}{Amelia Gordafarid Crowther}
 \newcommand{\supervisor}{Name of supervisor}
 \newcommand{\reporttype}{Type of Report/Thesis}
-\newcommand{\degreetype}{Type of degree} 
+\newcommand{\degreetype}{Computer Science BEng} 
 
 % load some definitions and default packages
 \input{includes}
@@ -80,9 +80,19 @@ However, they provide high quality information considering their price. This is 
 
 The sensor is capable of producing an RGB-D image to the system in 640x480 resolution at up to 30Hz. This is important, as it determines the amount of information that can be added to the system at each update. Additionally, it places a hard limit on the update rate of the system, which can never exceed the sensor rate.
 
+\section{Rigid Surface Reconstruction}
+\subsection{KinectFusion}
+\subsection{SDF-2-SDF}
+
+\section{Non-rigid Surface Reconstruction}
+\subsection{DynamicFusion}
+
+\subsection{VolumeDeform}
+
+
 \section{KillingFusion}
 
-KillingFusion operates very similarly to DynamicFusion, but introduces a much more sophisticated error function for estimating the warp field.
+KillingFusion operates very similarly to SDF-2-SDF, but introduces two other terms to the error function to enable it to estimate a non-rigid transformation.
 
 \begin{align*}
 E_{non-rigid}(\Psi) &= E_{data}(\Psi) + \omega_kE_{Killing}(\Psi) + \omega_sE_{level-set}(\Psi)\\
@@ -102,12 +112,64 @@ The additional parameters $\omega_k$ and $\omega_s$ are used to adjust the relat
 
 This error function is also much more easily parallelised, leading to greatly increased performance.\\
 
+\subsection{SDF}
+What it is theoretically:
+A signed distance field is a mapping from 3d vector space to real number. Phi: R3 -> R
 
-\noindent\textbf{Limitations}
+Magnitude of distance gradient is always one (conserved by level set property later on)
 
-KillingFusion has been shown to handle fast inter-frame motion and topological changes much better than alternatives such as DynamicFusion or VolumeDeform. This means that it is more desirable as a solution than the other methods outlined here.
+What it is practically:
+Divided by delta and truncated
 
-It does however still suffer from the same limitations as all of these methods in that it can only be applied to a small volume until further improvements to the method are made.
+How i did it:
+Use a depth image, project point into plane and subtract distance from camera. Could do perspective projection but much easier to do ortho (no expensive sqrt when calculating distance from camera)
+
+\subsection{Canonical SDF}
+
+What it is theoretically:
+The same as other sdf
+
+What it is practically:
+Weighted average 
+
+Role of eta: estimated thickness of surface
+
+How i did it:
+Use a 3D voxel grid to sample other SDFs at regular points 
+
+\subsection{Killing vector field}
+
+\subsection{Deformation field}
+What it is theoretically:
+Mapping psi: R3 -> R3 which describes a translation of that voxel which deforms 3D space.
+
+How i did it:
+3d voxel grid of vectors
+
+How its estimated:
+Gradient descent scheme
+
+Define error function!
+
+Rigid deformation done first:
+Difference of distances in SDFs, phin to phiglobal
+
+Non rigid deformation done next
+Two more componenets added
+Killing energy:
+Preserves the smoothness of deformation field
+
+Level set energy:
+Keeps the magnitude of the gradient of the SDF approximately 1
+
+Then we need to find the gradient of the error functions for the gradient descent schema
+
+Rigid:
+
+Non-rigid:
+
+Optimisations
+Designed to be done in parallel: i did multi-threaded on CPU, could also do GPU but not sure about time :/
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
