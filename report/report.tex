@@ -114,9 +114,8 @@ the volume to be reconstructed is divided up into a regular grid of voxels. reso
 
 a gradient descent scheme is used to iteratively align the current SDF to the canonical sdf. this process is repeated until the magnitude of the maximum update is less than a certain threshold (0.1 millimetres)
 
-$$\psi_{n+1} = \psi_{n} - \alpha E'(\psi)$$
+$$\Psi_{n+1} = \Psi_n - \alpha E(\Psi)$$
 
-this process is repeated for each vector $\psi$ in the voxel grid across the full deformation field $\Psi$.
 
 
 
@@ -136,7 +135,10 @@ These two error functions can be combined proportionally using a scaling factor 
 $$E = E_{geom} + \alpha_{norm}E_{norm}$$
 
 $$ E'_{geom} = (\phi_n(\Psi) - \phi_{global}) \nabla \phi_n(\Psi)$$
-\subsection{Weight average accumulation}
+
+\subsection{Weighted average accumulation}
+
+at the end of each update to $\Psi$, the accurately posed SDF must be integrated into the canonical SDF. This is done using a weighted average of all previous SDFs
 
 \begin{align*}
 \Phi_{n+1}(\textbf{V}) &= \frac{W_n(\textbf{V})\Phi_n(\textbf{V}) + \omega_{n+1}(\textbf{V})\phi_{n+1}(\textbf{V})}{W_{n}(\textbf{V}) + \omega_{n+1}(\textbf{V}}\\
@@ -154,8 +156,7 @@ Here, the voxel weighting is defined as:
 
 $\eta$ is a hyper-parameter that determines the expected thickness of the object 
 
-\subsection{how the fuck it works}
-
+In practice, the SDFs produced can be sampled at each voxel throughout the volume and a simple test can be performed to determine whether or not to increment $\Phi_n(\textbf{V})$ and $W_n(\textbf{V})$
 
 \section{KillingFusion}
 
@@ -217,6 +218,14 @@ Designed to be done in parallel: i did multi-threaded on CPU, could also do GPU 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Contribution}
+
+\section{CPU version}
+
+\subsection{Multi-threading}
+
+make a diagram for running time with different sized thread pools
+
+\section{GPU version}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
