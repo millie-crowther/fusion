@@ -154,12 +154,11 @@ sdf_t::deformation_at(point_t p){
 
 point_t
 sdf_t::distance_gradient(point_t p){
-    float l = 1;
     return point_t(
-        distance(p + point_t(l, 0, 0)) - distance(p - point_t(l, 0, 0)),
-        distance(p + point_t(0, l, 0)) - distance(p - point_t(0, l, 0)),
-        distance(p + point_t(0, 0, l)) - distance(p - point_t(0, 0, l))
-    ) / (2 * l);
+        distance(p + point_t(1, 0, 0)) - distance(p - point_t(1, 0, 0)),
+        distance(p + point_t(0, 1, 0)) - distance(p - point_t(0, 1, 0)),
+        distance(p + point_t(0, 0, 1)) - distance(p - point_t(0, 0, 1))
+    ) / 2.0f;
 }
 
 void

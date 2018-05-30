@@ -1,4 +1,6 @@
 \documentclass[12pt,twoside]{report}
+\usepackage{amsmath}
+\usepackage{amsfonts}
 
 % some definitions for the title page
 \newcommand{\reporttitle}{asdfasdf}
@@ -82,12 +84,77 @@ The sensor is capable of producing an RGB-D image to the system in 640x480 resol
 
 \section{Rigid Surface Reconstruction}
 \subsection{KinectFusion}
-\subsection{SDF-2-SDF}
-
 \section{Non-rigid Surface Reconstruction}
 \subsection{DynamicFusion}
 
 \subsection{VolumeDeform}
+
+\section{SDF-2-SDF}
+
+SDF-2-SDF is a technique for static reconstruction.
+
+precursor to KillingFusion, and designed in a very similar way
+
+operates more explicitly - no notion of point clouds, so data of depth image is abstracted into a SDF. 
+
+creates a canonical SDF by accumulating data from each frame
+
+\subsection{Signed distance field}
+
+A signed distance field (SDF) is a mapping $\phi : \mathbb{R}^3 \rightarrow  \mathbb{R}$ which yields the distance from the surface of an object at a particular point in space. 
+Points inside the object correspond to negative values; points outside the object correspond to positive values and points on the surface are mapped to zero.
+
+One of the important properties of a signed distance field is that the magnitude of the gradient of the SDF is equal to one at all points. This is called the level set property and is useful as a regularizer.
+
+additionally, the gradient of the sdf is equivalent to the normal of the surface at the given point.
+
+\subsection{Voxel grid}
+
+the volume to be reconstructed is divided up into a regular grid of voxels. resolution 5-10 millimetres - mention sensor error of kinect camera
+
+a gradient descent scheme is used to iteratively align the current SDF to the canonical sdf. this process is repeated until the magnitude of the maximum update is less than a certain threshold (0.1 millimetres)
+
+$$\psi_{n+1} = \psi_{n} - \alpha E'(\psi)$$
+
+this process is repeated for each vector $\psi$ in the voxel grid across the full deformation field $\Psi$.
+
+
+
+\subsection{energy functions}
+
+simplest:
+
+$$ E_{geom} = \frac{1}{2} \sum\limits_{\textrm{all voxels}} (\phi_n(\Psi) - \phi_{global})^2  $$
+
+
+additionally, the normals can be constrained to be approximately 1. Originally the dot product of the two relevant normals was used
+
+$$ E_{norm} = \sum\limits_{\textrm{all voxels}}(1 - \nabla \phi_n(\Psi) \cdot \nabla\phi_{global}) $$
+
+These two error functions can be combined proportionally using a scaling factor $\alpha_{norm}$. This factor can take on values in the range $[0..1]$, but is usually set to zero to improve performance.
+
+$$E = E_{geom} + \alpha_{norm}E_{norm}$$
+
+$$ E'_{geom} = (\phi_n(\Psi) - \phi_{global}) \nabla \phi_n(\Psi)$$
+\subsection{Weight average accumulation}
+
+\begin{align*}
+\Phi_{n+1}(\textbf{V}) &= \frac{W_n(\textbf{V})\Phi_n(\textbf{V}) + \omega_{n+1}(\textbf{V})\phi_{n+1}(\textbf{V})}{W_{n}(\textbf{V}) + \omega_{n+1}(\textbf{V}}\\
+W_{n+1}(\textbf{V}) &= W_n(\textbf{V}) + \omega_n(\textbf{V}) \\
+\end{align*}
+
+Here, the voxel weighting is defined as:
+
+\[
+    \omega(\textbf{V}) = \left\{\begin{array}{lr}
+    1, & \text{for } \phi_{true}(\textbf{V}) > - \eta\\
+    0, & \text{otherwise}\\
+    \end{array}\right\}
+\]
+
+$\eta$ is a hyper-parameter that determines the expected thickness of the object 
+
+\subsection{how the fuck it works}
 
 
 \section{KillingFusion}
@@ -112,30 +179,6 @@ The additional parameters $\omega_k$ and $\omega_s$ are used to adjust the relat
 
 This error function is also much more easily parallelised, leading to greatly increased performance.\\
 
-\subsection{SDF}
-What it is theoretically:
-A signed distance field is a mapping from 3d vector space to real number. Phi: R3 -> R
-
-Magnitude of distance gradient is always one (conserved by level set property later on)
-
-What it is practically:
-Divided by delta and truncated
-
-How i did it:
-Use a depth image, project point into plane and subtract distance from camera. Could do perspective projection but much easier to do ortho (no expensive sqrt when calculating distance from camera)
-
-\subsection{Canonical SDF}
-
-What it is theoretically:
-The same as other sdf
-
-What it is practically:
-Weighted average 
-
-Role of eta: estimated thickness of surface
-
-How i did it:
-Use a 3D voxel grid to sample other SDFs at regular points 
 
 \subsection{Killing vector field}
 

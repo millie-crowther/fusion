@@ -21,12 +21,12 @@ int main(){
     // empirically determined
     ps.sdf_eta = 100;
     ps.size = point_t(640, 480, 1500);
-    ps.voxel_length = 8; 
+    ps.voxel_length = 10; 
     
     // killing fusion paper part 3.1 
     ps.delta = ps.voxel_length * 10;
 
-    ps.max_iterations = 1000;
+    ps.max_iterations = 50;
        
     f.fusion(&ps);
     
