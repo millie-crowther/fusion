@@ -1,9 +1,10 @@
 \documentclass[12pt,twoside]{report}
 \usepackage{amsmath}
 \usepackage{amsfonts}
+\usepackage{listings}
 
 % some definitions for the title page
-\newcommand{\reporttitle}{asdfasdf}
+\newcommand{\reporttitle}{Real-time reconstruction of non-rigid objects from RGBD data}
 \newcommand{\reportauthor}{Amelia Gordafarid Crowther}
 \newcommand{\supervisor}{Name of supervisor}
 \newcommand{\reporttype}{Type of Report/Thesis}
@@ -84,10 +85,131 @@ The sensor is capable of producing an RGB-D image to the system in 640x480 resol
 
 \section{Rigid Surface Reconstruction}
 \subsection{KinectFusion}
+
+KinectFusion provides one such method for determining correspondences between point clouds. It makes one very important assumption: that the surface it is reconstructing is rigid, and will not be deformed while it is being observed by the system. While this is a very restricted approach to the problem, this algorithm laid the groundwork for later non-rigid systems such as DynamicFusion.
+
+\subsubsection{Iterative Closest Point algorithm}
+This is a widely used algorithm in this field which has been optimised and adapted for many purposes. Its purpose is simply to take two point clouds and return the transformation which most closely aligns the two clouds.
+Psuedo-code for the ICP algorithm is shown below:
+
+\begin{lstlisting}[language=Python]
+def ICP(P, Q):
+    transform = identity
+    while not aligned(P, Q):
+        correspondence = []
+        for p in P:
+            p_t = apply(transform, p)
+            q = closest point to p_t in Q
+            correspondence += (p, q)
+        transform = least_squares(correspondence)
+    return transform
+\end{lstlisting}
+
+\subsubsection{Principles of operation}
+
+Initially, a pre-processing phase occurs, where depth and normal maps are constructed from the input data. The system then enters a continuously updating loop with three stages.
+
+\begin{enumerate}
+\item \textbf{Sensor pose estimation}: KinectFusion uses the ICP algorithm to align its prediction of the surface with the actual measurements of the surface it receives. The transform that is returned is rigid, which functions perfectly for this algorithm, but requires adaptation for a non-rigid case. 
+
+\item \textbf{Update surface reconstruction}: Here, the system receives input from the sensor, which it uses to create a truncated signed distance function (TSDF) for that live frame. Together with the TSDFs from previous frames, a composite TSDF is created to represent the system's model of the scene. This composite TSDF is discretised into a 2-dimensional array and stored in global GPU memory.
+
+\item \textbf{Surface prediction}: At this stage KinectFusion will produce its own depth map by ray-casting against its own model of the scene. This produces a prediction of what it expects the scene to look like.
+\end{enumerate}
+
+
 \section{Non-rigid Surface Reconstruction}
 \subsection{DynamicFusion}
 
+DynamicFusion was the first system to achieve dense, dynamic scene reconstruction in real-time. Both VolumeDeform and KillingFusion were heavily inspired by or based on DynamicFusion.
+
+\subsubsection{Warp field}
+
+The warp field is essentially a set of deformation nodes, each of which is denoted:
+
+$$\mathcal{N}^t_{\textbf{warp}}=\{ \textbf{dg}_v, \textbf{dg}_w, \textbf{dg}_{se3} \}$$
+
+Where the parameters refer to:
+
+\begin{itemize}
+\item $\textbf{dg}_v$: The position vector of the deformation node
+
+\item $\textbf{dg}_w$: The radius of influence of the node, which determines the strength of the application of the transformation to the node's neighbours
+
+\item $\textbf{dg}_{se3}$: The transformation of the deformation node, represented using dual quaternions
+\end{itemize}
+
+
+\subsubsection{Dual quaternions}
+
+3
+
+
+\subsubsection{Dual quaternion blending}
+
+KD-Tree
+
+$$\mathcal{W}(x_c) = SE3(\textbf{DQB}(x_c))$$
+
+$$\textbf{DQB}(x_c) = \frac{\sum_{k \in N(x_c)} \textbf{w}_k(x_c)\hat{\textbf{q}}_{kc}}{\Vert \sum_{k \in N(x_c)} \textbf{w}_k(x_c)\hat{\textbf{q}}_{kc} \Vert}$$
+
+\subsubsection{Warp function}
+
+6
+
+\subsubsection{Surface fusion}
+
+7
+
+\noindent\textbf{Principles of operation}
+
+
+There are three key steps that occur in each iteration of the DynamicFusion algorithm, and they each take place whenever a new live frame is produced:
+
+\begin{enumerate}
+\item \textbf{Warp field estimation}: The warp field is estimated by choosing parameters such that the error function below is minimised:
+
+$$E(\mathcal{W}_t, \mathcal{V}, D_t, \mathcal{E}) = \textbf{Data}(\mathcal{W}_t, \mathcal{V}_t, D_t) + \lambda\textbf{Reg}(\mathcal{W}_t, \mathcal{E})$$
+
+This function consists of two terms:
+\begin{itemize}
+\item $\textbf{Data}(\mathcal{W}_t, \mathcal{V}_t, D_t) = \sum\limits_{u \in \Omega} \psi_{data}(\hat{\textbf{n}}_u^\top (\hat{\textbf{v}}_u - \textbf{vl}_u))$
+
+This term represents the ICP cost between the model and the live frame. This step is similar to KinectFusion, although it uses a non-rigid version of ICP.
+
+\item $\textbf{Reg}(\mathcal{W}_t, \mathcal{E}) = \sum\limits_{i=0}^n\sum\limits_{j \in \mathcal{E}(i)}\alpha_{ij}\psi_{reg}(\textbf{T}_{ic}\textbf{dg}^j_v - \textbf{T}_{jc}\textbf{dg}^j_v)$
+
+This term which regularises the warp field. This ensures that motion is as smooth as possible, and that deformation is as rigid as possible.
+\end{itemize}
+
+Additionally, the $\lambda$ parameter can be adjusted to determine the relative importance of each term to the error function as a whole.
+
+$E$ is minimised using Gauss-Newton non-linear optimisation.
+
+\item \textbf{Surface fusion}: Using the estimated warp field, both surfaces can be warped back into the canonical model. This means they occupy the same space relative to each other, so can be directly compared.
+
+\item \textbf{Updating the canonical model}: Now that the live frame has been warped into the canonical model, points can be added or removed from the canonical model as appropriate.
+\end{enumerate}
+
+
 \subsection{VolumeDeform}
+
+VolumeDeform is different to the other examined techniques in that it doesn't rely solely on depth information. It also uses the RGB data probided by the sensor to extract additional information about the live frame.\\
+
+
+\noindent\textbf{Principles of operation}
+
+VolumeDeform operates similarly to the other methods outlined, in that it involves a loop that repeatedly acquires new knowledge and integrates it with an existing model.
+
+\begin{enumerate}
+\item \textbf{Mesh extraction}: The signed distance field representing the system's model of the scene is used to generate a deformed 3D mesh using Marching Cubes
+\item \textbf{Correspondence detection}: The mesh is rendered to produce a depth map which can be used to generate correspondences.
+
+Additionally, SIFT features are detected in the live frame and stored by the system. Since SIFT features are robust to changes in transformation, they can be recognised again in later frames. This provides extra information to inform the process of correspondence detection.
+
+\item \textbf{Deformation optimisation}: The deformation field is optimised so that it is consistent with the observed values of colour and depth.
+\end{enumerate}
+
 
 \section{SDF-2-SDF}
 
@@ -221,11 +343,27 @@ Designed to be done in parallel: i did multi-threaded on CPU, could also do GPU 
 
 \section{CPU version}
 
+The code for this part of the project can be found at:
+
+\begin{center}
+\verb|github.com/millie-crowther/fusion|
+\end{center}
+
 \subsection{Multi-threading}
+
+The design of the KillingFusion system is very well suited to parallelism, since the update of each voxel only depends on the evaluation of the error function at that voxel. 
+Of course, given the size of the voxel grid involved, it is best to use the massive parallelism of a GPU to maximise performance.
+However, it is still possible to parallelise the system on the CPU and achieve a moderate increase in performance. 
 
 make a diagram for running time with different sized thread pools
 
 \section{GPU version}
+
+The code for this part of the project can be found at:
+
+\begin{center}
+\verb|github.com/millie-crowther/gpu_fusion|
+\end{center}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

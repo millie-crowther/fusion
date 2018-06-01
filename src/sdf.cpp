@@ -190,6 +190,12 @@ sdf_t::fuse(bool is_rigid, canon_sdf_t * canon){
                     std::cout << percent << "%" << std::endl;
                 }
             } 
+
+            for (int i = 0; i < 3; i++){
+                if (!std::isfinite(deform_field[x][y][z][i])){
+                    std::cout << "Error: deformation field has diverged!" << std::endl;
+                }
+            }
         }
     };
 
