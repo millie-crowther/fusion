@@ -223,6 +223,8 @@ creates a canonical SDF by accumulating data from each frame
 
 \subsection{Signed distance field}
 
+\subsubsection{Definition}
+
 A signed distance field (SDF) is a mapping $\phi : \mathbb{R}^3 \rightarrow  \mathbb{R}$ which yields the distance from the surface of an object at a particular point in space. 
 Points inside the object correspond to negative values; points outside the object correspond to positive values and points on the surface are mapped to zero.
 
@@ -230,13 +232,7 @@ One of the important properties of a signed distance field is that the magnitude
 
 additionally, the gradient of the sdf is equivalent to the normal of the surface at the given point.
 
-\subsection{Voxel grid}
 
-the volume to be reconstructed is divided up into a regular grid of voxels. resolution 5-10 millimetres - mention sensor error of kinect camera
-
-a gradient descent scheme is used to iteratively align the current SDF to the canonical sdf. this process is repeated until the magnitude of the maximum update is less than a certain threshold (0.1 millimetres)
-
-$$\Psi_{n+1} = \Psi_n - \alpha E(\Psi)$$
 
 
 
@@ -303,43 +299,95 @@ The additional parameters $\omega_k$ and $\omega_s$ are used to adjust the relat
 This error function is also much more easily parallelised, leading to greatly increased performance.\\
 
 
-\subsection{Killing vector field}
 
 \subsection{Deformation field}
-What it is theoretically:
-Mapping psi: R3 -> R3 which describes a translation of that voxel which deforms 3D space.
 
-How i did it:
-3d voxel grid of vectors
+The deformation field is a mapping $\Psi : \mathbb{R}^3 \rightarrow \mathbb{R}^3$ that maps a point in space to its deformation relative to the canonical SDF.
 
-How its estimated:
-Gradient descent scheme
+The deformation field is only defined over the volume being reconstructed. Any points queried outside the volume return a deformation of zero.
 
-Define error function!
+In practical terms, the volume is discretized into voxels of a fixed length. At each voxel, a single displacement vector $u : \mathbb{R}^3$ is stored to describe the deformation field at that point.
 
-Rigid deformation done first:
-Difference of distances in SDFs, phin to phiglobal
+The main task of KillingFusion is to estimate the value of this deformation field, using the error functions outlined.
 
-Non rigid deformation done next
-Two more componenets added
-Killing energy:
-Preserves the smoothness of deformation field
+\subsection{Killing vector field}
 
-Level set energy:
-Keeps the magnitude of the gradient of the SDF approximately 1
+\chapter{Implementation details}
 
-Then we need to find the gradient of the error functions for the gradient descent schema
 
-Rigid:
+\section{Signed distance field}
 
-Non-rigid:
+The signed distance field is ultimately produced from the depth image provided by the Kinect camera. 
+Instead of using the depth data to produce a point cloud, an implicit technique is used instead.
+We define the SDF as follows:
 
-Optimisations
-Designed to be done in parallel: i did multi-threaded on CPU, could also do GPU but not sure about time :/
+$$\phi_{\text{true}}(\textbf{V}) = D(\pi(\textbf{V})) - \textbf{V}_Z$$
 
+\[
+    \phi(\textbf{V}) = \left\{\begin{array}{lr}
+    -1,                    & \text{for } \phi_{true}(\textbf{V}) < - \delta\\
+    \phi_{true}(\textbf{V}) / \delta, & \text{for } -\delta \leq \phi_{true}(\textbf{V}) \leq \delta \\
+    1,                     & \text{for } \phi_{true}(\textbf{V}) > \delta\\
+    \end{array}\right\}
+\]
+
+\subsection{Projection}
+
+Here, $D(x)$ is the depth data at the point $x$ in the image provided by the Kinect camera.
+
+$\pi(\textbf{V})$ is the function which projects the centre of the voxel \textbf{V} into a 2-dimensional point in the image plane. There are two main choices for projection:
+\begin{itemize}
+\item \textbf{Perspective}: This provides a more realistic model from the point-of-view of the camera filming the footage. 
+However, the projection requires more expensive matrix multiplication. Additionally, an expensive vector magnitude operation is required to calculate depth from the camera.
+Perspective projection also leaves large areas of the volume which cannot be reconstructed due to being projected outside of the volume.
+
+\item \textbf{Orthographic}: This method simply discards the z-component of the vector to determine where it lies in the depth image. This is much more efficient, as it also allows distance from the camera to be efficiently calculated directly from the z-component.
+\end{itemize} 
+
+In the end, orthographic projection was used. This is because the signed distance function is evaluated an extremely large number of times (numbers?) each iteration, so must be very efficient.
+
+\subsection{Role of $\delta$}
+
+As part of the implementation of the SDF, the true distance from the surface is divided by $\delta$ and clamped to the range $[-1 \ldots 1]$.
+
+This has the effect of limiting the estimation of the deformation field to areas near the surface of the surface boundary of the SDF. 
+
+If a point lies too far outside the surface, then it is simply designated as `somewhere outside' the surface and treated like all other points of its kind. The same is true for points far inside the surface.
+
+This ensures that unnecessary calculations are not carried out for voxels which are ultimately irrelevant to the geometry of the surface.
+
+in keeping with killingfusion paper, a value of delta was used ten times the voxel length.
+
+
+\section{Voxel grid}
+
+the volume to be reconstructed is divided up into a regular grid of voxels. resolution 5-10 millimetres - mention sensor error of kinect camera
+
+a gradient descent scheme is used to iteratively align the current SDF to the canonical sdf. this process is repeated until the magnitude of the maximum update is less than a certain threshold (0.1 millimetres)
+
+$$\Psi_{n+1} = \Psi_n - \alpha E(\Psi)$$
+
+\subsection{Canonical SDF}
+
+the canonical sdf samples previous sdfs
+
+at each voxel, two values are stored: omega and phi.
+if $\phi_{true}(\textbf{V}) > - \eta$, then omega is incremented and the value of $\phi_{true}$ is added to the total of phi.
+
+then, if the distance needs to be queried, $\frac{\phi}{\omega}$ is returned.
+
+\subsection{Deformation field}
+
+deformation field also split along voxel grid.
+
+single vector stored at each voxel.
+
+since each frame is initialised with the previous frames deformation, only one deformation field needs to be created in memory. this field is continually updated and shared by all SDFs created.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\chapter{Contribution}
+
+\chapter{Contributions}
+
 
 \section{CPU version}
 
@@ -365,6 +413,7 @@ The code for this part of the project can be found at:
 \verb|github.com/millie-crowther/gpu_fusion|
 \end{center}
 
+\subsection{CUDA}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Experimental Results}
