@@ -217,13 +217,19 @@ SDF-2-SDF is a technique for static reconstruction.
 
 precursor to KillingFusion, and designed in a very similar way
 
-operates more explicitly - no notion of point clouds, so data of depth image is abstracted into a SDF. 
+operates more implicitly - no usage of point clouds, so data of depth image is abstracted into a SDF.
 
-creates a canonical SDF by accumulating data from each frame
+For each depth image that is processed by the system, a signed distance field is created to represent the target object as viewed in that frame.
+
+this sdf is warped into the canonical SDF using a gradient descent scheme based on a custom error function.
+
+the canonical sdf represents the systems current best reconstruction of the target object.
+
+once the current frames sdf has been succsefully warped into the canonical sdf, then it is integrated into the canonical sdf to add any new geometry to the reconstruction.
+
+this process continues for each frame of data.
 
 \subsection{Signed distance field}
-
-\subsubsection{Definition}
 
 A signed distance field (SDF) is a mapping $\phi : \mathbb{R}^3 \rightarrow  \mathbb{R}$ which yields the distance from the surface of an object at a particular point in space. 
 Points inside the object correspond to negative values; points outside the object correspond to positive values and points on the surface are mapped to zero.
@@ -233,11 +239,9 @@ One of the important properties of a signed distance field is that the magnitude
 additionally, the gradient of the sdf is equivalent to the normal of the surface at the given point.
 
 
+\subsection{Gradient descent scheme}
 
 
-
-
-\subsection{energy functions}
 
 simplest:
 
@@ -254,8 +258,12 @@ $$E = E_{geom} + \alpha_{norm}E_{norm}$$
 
 $$ E'_{geom} = (\phi_n(\Psi) - \phi_{global}) \nabla \phi_n(\Psi)$$
 
-\subsection{Weighted average accumulation}
+as long as the magnitude of the maximum update remains above a set threshold, this process of gradient descent will continue.
 
+\subsection{Canonical SDF}
+
+
+This canonical SDF is adjusted incrementally as new data is processed each frame. 
 at the end of each update to $\Psi$, the accurately posed SDF must be integrated into the canonical SDF. This is done using a weighted average of all previous SDFs
 
 \begin{align*}
@@ -274,7 +282,6 @@ Here, the voxel weighting is defined as:
 
 $\eta$ is a hyper-parameter that determines the expected thickness of the object 
 
-In practice, the SDFs produced can be sampled at each voxel throughout the volume and a simple test can be performed to determine whether or not to increment $\Phi_n(\textbf{V})$ and $W_n(\textbf{V})$
 
 \section{KillingFusion}
 
@@ -369,6 +376,8 @@ $$\Psi_{n+1} = \Psi_n - \alpha E(\Psi)$$
 
 \subsection{Canonical SDF}
 
+In practice, the SDFs produced can be sampled at each voxel throughout the volume and a simple test can be performed to determine whether or not to increment $\Phi_n(\textbf{V})$ and $W_n(\textbf{V})$
+
 the canonical sdf samples previous sdfs
 
 at each voxel, two values are stored: omega and phi.
@@ -413,7 +422,23 @@ The code for this part of the project can be found at:
 \verb|github.com/millie-crowther/gpu_fusion|
 \end{center}
 
+\subsection{C++}
+
 \subsection{CUDA}
+
+Four entry points to CUDA code from host:
+
+\begin{enumerate}
+\item \textbf{Initialise}: Initialises the system, sets warp field to zero. samples first SDF into canonical sdf. allocates memory.
+
+\item \textbf{Estimate} $\Psi$: Most important kernel launch. updates deformation field.
+
+\item \textbf{Get Canonical SDF}: copies the canonical sdf from device to host so that it can be viewed.
+
+\item \textbf{Clean up}: cleans up the system. de-allocates memory
+
+\end{enumerate}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \chapter{Experimental Results}
