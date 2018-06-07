@@ -61,10 +61,19 @@ fusion_t::fusion(min_params_t * ps){
         std::cout << "Frame number: " << i << std::endl;     
 
         sdf_t sdf = get_sdf(filenames[i], ps);
-        sdf.fuse(canon);
+
+        // rigid component
+        std::cout << "Calculating rigid deformation..." << std::endl;
+        sdf.fuse(true, canon);
+        std::cout << "Rigid deformation converged." << std::endl;
+ 
+        // non-rigid component
+        std::cout << "Calculating non-rigid deformation..." << std::endl;
+        sdf.fuse(false, canon);
+        std::cout << "Non-rigid deformation converged." << std::endl;
         canon->add_sdf(&sdf);
 
-        if (true){//i % 30 == 0){
+        if (i % 30 == 0){
             canon->save_mesh("umbrella", i);
         }
 

@@ -3,6 +3,8 @@
 #include <iostream>
 #include <algorithm>
 #include <fstream>
+#include <glm/gtx/string_cast.hpp>
+#include <cmath>
 
 canon_sdf_t::canon_sdf_t(min_params_t * ps){
     voxel_length = ps->voxel_length;
@@ -568,10 +570,37 @@ canon_sdf_t::create_mesh_for_cell(float isolevel, mesh_t * mesh, cell_t * cell){
 
 
     for (int i = 0; triTable[cubeindex][i] != -1; i += 3){
-        mesh->push_back(triangle_t(
+        triangle_t tri = triangle_t(
             vertices[triTable[cubeindex][i  ]],
             vertices[triTable[cubeindex][i+1]],
             vertices[triTable[cubeindex][i+2]]
-        ));
+        );
+
+        bool bad = false;
+        for (int i = 0; i < 3; i++){
+            for (int j = 0; j < 3; j++){
+                if (tri.vertices[i][j] == 0 || !std::isfinite(tri.vertices[i][j])){
+                    bad = true;
+                }
+            }
+        }
+
+        if (bad){
+            std::cout << "Bad triangle! " << std::endl;
+            for (int i = 0; i < 3; i++){
+                std::cout << "Vertex " << i << ": " << glm::to_string(tri.vertices[i]) << std::endl;
+            }
+
+            std::cout << "Voxel: " << glm::to_string(cell->point[0]);
+            for (int i = 0; i < 8; i++){
+                std::cout << "value " << i << ": " << cell->value[i] << std::endl;
+            }
+
+            throw -1;
+        }
+      
+        mesh->push_back(tri);
     } 
+
+
 }

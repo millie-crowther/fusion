@@ -5,8 +5,7 @@
 
 struct min_params_t {
     // learning rates for rigid and non-rigid alignment
-    float eta_rigid;
-    float eta_nonrigid;
+    float eta;
 
     // relative weighting of killing condition
     float omega_k;
@@ -25,6 +24,8 @@ struct min_params_t {
 
     bool is_multithreaded;
     int frames;
+
+    int max_iterations;
 
     point_t size;
     float voxel_length;

@@ -1,6 +1,7 @@
-rm report.pdf
-latex report
-bibtex report
-latex report
-latex report
-evince report.pdf
+pdflatex report
+pdflatex report
+pdflatex report
+rm report.log
+rm report.out
+rm report.aux
+rm report.toc

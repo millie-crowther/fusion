@@ -1,43 +1,80 @@
-%&pdflatex
-\documentclass[a4paper]{article}
-
-%% Language and font encodings
-\usepackage[english]{babel}
-\usepackage[utf8x]{inputenc}
-\usepackage[T1]{fontenc}
-
-%% Sets page size and margins
-\usepackage[a4paper,top=3cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
-
-%% Useful packages
+\documentclass[12pt,twoside]{report}
 \usepackage{amsmath}
-\usepackage{graphicx}
+\usepackage{amsfonts}
 \usepackage{listings}
-\usepackage[colorinlistoftodos]{todonotes}
-\usepackage[colorlinks=true, allcolors=blue]{hyperref}
 
-\title{Real-time reconstruction of non-rigid objects from RGBD data: Interim Report}
-\author{Amelia Gordafarid Crowther}
+% some definitions for the title page
+\newcommand{\reporttitle}{Real-time reconstruction of non-rigid objects from RGBD data}
+\newcommand{\reportauthor}{Amelia Gordafarid Crowther}
+\newcommand{\supervisor}{Name of supervisor}
+\newcommand{\reporttype}{Type of Report/Thesis}
+\newcommand{\degreetype}{Computer Science BEng} 
 
+% load some definitions and default packages
+\input{includes}
+
+% load title page
 \begin{document}
+\input{titlepage}
 
-\maketitle
-\section{Introduction}
 
-\subsection{Motivation}
+% page numbering etc.
+\pagenumbering{roman}
+\clearpage{\pagestyle{empty}\cleardoublepage}
+\setcounter{page}{1}
+\pagestyle{fancy}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{abstract}
+Your abstract.
+\end{abstract}
+
+\cleardoublepage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Acknowledgments}
+Comment this out if not needed.
+
+\clearpage{\pagestyle{empty}\cleardoublepage}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%--- table of contents
+\fancyhead[RE,LO]{\sffamily {Table of Contents}}
+\tableofcontents 
+
+
+\clearpage{\pagestyle{empty}\cleardoublepage}
+\pagenumbering{arabic}
+\setcounter{page}{1}
+\fancyhead[LE,RO]{\slshape \rightmark}
+\fancyhead[LO,RE]{\slshape \leftmark}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Introduction}
+
+\begin{figure}[tb]
+\centering
+\includegraphics[width = 0.4\hsize]{./figures/imperial}
+\caption{Imperial College Logo. It's nice blue, and the font is quite stylish. But you can choose a different one if you don't like it.}
+\label{fig:logo}
+\end{figure}
+
+Figure~\ref{fig:logo} is an example of a figure. 
+
+\section{Motivation}
 
 The reconstruction of 3-dimensional scenes using RGB-D data has been the subject of a lot of research recently. Due to the wide range of applications in fields such as Robotics and Augmented Reality, it has gained much interest.
 
 However, most existing systems are designed only to reconstruct static geometry. This leads to hard limitations in the adaptability of the system to a changing environment. Worse still, highly deformable or dynamic objects such as a moving person cannot be reconstructed at all by a static system.
 
-There has been a lot of interest in techniques for non-rigid reconstruction, but despite it being a hot research topic, few implementations of proposed systems are widely available. 
+There has been a lot of interest in techniques for non-rigid reconstruction, but despite it being a hot research topic, few implementations of proposed systems are widely available.
 
 The aim of this project is to provide such an implementation that can reconstruct a rigid object from a  non-rigid scene in real-time.
 
 
-\section{Background}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Background}
 
-\subsection{Kinect Camera}
+\section{Kinect Camera}
 
 The first and most fundamental element of the system is the sensor used to obtain information about the surface to be reconstructed. The most commonly used sensor for this purpose is the Kinect camera. Originally designed as a commodity level camera for home games consoles, it was available directly to consumers. This means that Kinect cameras are widely and cheaply available to use.
 
@@ -46,13 +83,7 @@ However, they provide high quality information considering their price. This is 
 
 The sensor is capable of producing an RGB-D image to the system in 640x480 resolution at up to 30Hz. This is important, as it determines the amount of information that can be added to the system at each update. Additionally, it places a hard limit on the update rate of the system, which can never exceed the sensor rate.
 
-\subsection{Point Cloud Correspondences}
-
-Once all noise has been removed from the RGB-D image, it can be converted into a point cloud, which forms the input to the system at each update. Every point in the cloud is considered to lie on the surface of the object that is being reconstructed. 
-
-The main task of the system, which has been approached using multiple methods, is to find correspondences between the point clouds obtained at each update. These correspondences can be used to resolve all the data obtained into one model, which is the target surface for reconstruction.
-
-
+\section{Rigid Surface Reconstruction}
 \subsection{KinectFusion}
 
 KinectFusion provides one such method for determining correspondences between point clouds. It makes one very important assumption: that the surface it is reconstructing is rigid, and will not be deformed while it is being observed by the system. While this is a very restricted approach to the problem, this algorithm laid the groundwork for later non-rigid systems such as DynamicFusion.
@@ -83,17 +114,11 @@ Initially, a pre-processing phase occurs, where depth and normal maps are constr
 
 \item \textbf{Update surface reconstruction}: Here, the system receives input from the sensor, which it uses to create a truncated signed distance function (TSDF) for that live frame. Together with the TSDFs from previous frames, a composite TSDF is created to represent the system's model of the scene. This composite TSDF is discretised into a 2-dimensional array and stored in global GPU memory.
 
-\item \textbf{Surface prediction}: At this stage KinectFusion will produce its own depth map by ray-casting against its own model of the scene. This produces a prediction of what it expects the scene to look like. 
+\item \textbf{Surface prediction}: At this stage KinectFusion will produce its own depth map by ray-casting against its own model of the scene. This produces a prediction of what it expects the scene to look like.
 \end{enumerate}
 
 
-\subsubsection{Limitations}
-
-The main limitation of the KinectFusion system is that it fails to handle deforming geometry. If a surface is not completely static then it will fail to reconstruct it.  
-
-
-There have been several methods proposed for the reconstruction of non-rigid surfaces. DynamicFusion is the most 
-
+\section{Non-rigid Surface Reconstruction}
 \subsection{DynamicFusion}
 
 DynamicFusion was the first system to achieve dense, dynamic scene reconstruction in real-time. Both VolumeDeform and KillingFusion were heavily inspired by or based on DynamicFusion.
@@ -144,15 +169,15 @@ There are three key steps that occur in each iteration of the DynamicFusion algo
 \begin{enumerate}
 \item \textbf{Warp field estimation}: The warp field is estimated by choosing parameters such that the error function below is minimised:
 
-$$E(\mathcal{W}_t, \mathcal{V}, D_t, \mathcal{E}) = \textbf{Data}(\mathcal{W}_t, \mathcal{V}_t, D_t) + \lambda\textbf{Reg}(\mathcal{W}_t, \mathcal{E})$$ 
+$$E(\mathcal{W}_t, \mathcal{V}, D_t, \mathcal{E}) = \textbf{Data}(\mathcal{W}_t, \mathcal{V}_t, D_t) + \lambda\textbf{Reg}(\mathcal{W}_t, \mathcal{E})$$
 
 This function consists of two terms:
 \begin{itemize}
-\item $\textbf{Data}(\mathcal{W}_t, \mathcal{V}_t, D_t) = \sum\limits_{u \in \Omega} \psi_{data}(\hat{\textbf{n}}_u^\top (\hat{\textbf{v}}_u - \textbf{vl}_u))$ 
+\item $\textbf{Data}(\mathcal{W}_t, \mathcal{V}_t, D_t) = \sum\limits_{u \in \Omega} \psi_{data}(\hat{\textbf{n}}_u^\top (\hat{\textbf{v}}_u - \textbf{vl}_u))$
 
 This term represents the ICP cost between the model and the live frame. This step is similar to KinectFusion, although it uses a non-rigid version of ICP.
 
-\item $\textbf{Reg}(\mathcal{W}_t, \mathcal{E}) = \sum\limits_{i=0}^n\sum\limits_{j \in \mathcal{E}(i)}\alpha_{ij}\psi_{reg}(\textbf{T}_{ic}\textbf{dg}^j_v - \textbf{T}_{jc}\textbf{dg}^j_v)$ 
+\item $\textbf{Reg}(\mathcal{W}_t, \mathcal{E}) = \sum\limits_{i=0}^n\sum\limits_{j \in \mathcal{E}(i)}\alpha_{ij}\psi_{reg}(\textbf{T}_{ic}\textbf{dg}^j_v - \textbf{T}_{jc}\textbf{dg}^j_v)$
 
 This term which regularises the warp field. This ensures that motion is as smooth as possible, and that deformation is as rigid as possible.
 \end{itemize}
@@ -166,16 +191,10 @@ $E$ is minimised using Gauss-Newton non-linear optimisation.
 \item \textbf{Updating the canonical model}: Now that the live frame has been warped into the canonical model, points can be added or removed from the canonical model as appropriate.
 \end{enumerate}
 
-\noindent\textbf{Limitations}
-
-DynamicFusion is quite limited by its handling of topology changes; the method is robust to a change from open to closed topology, but if the surface changes from a closed topology to an open one too quickly the system will fail to reconstruct the surface.
-
-It is also limited by unusual changes in motion. For example, it will struggle with large inter-frame motion, or the motion of occluded parts of the surface.
-
 
 \subsection{VolumeDeform}
 
-VolumeDeform is different to the other examined techniques in that it doesn't rely solely on depth information. It also uses the RGB data probided by the sensor to extract additional information about the live frame.\\ 
+VolumeDeform is different to the other examined techniques in that it doesn't rely solely on depth information. It also uses the RGB data probided by the sensor to extract additional information about the live frame.\\
 
 
 \noindent\textbf{Principles of operation}
@@ -184,23 +203,89 @@ VolumeDeform operates similarly to the other methods outlined, in that it involv
 
 \begin{enumerate}
 \item \textbf{Mesh extraction}: The signed distance field representing the system's model of the scene is used to generate a deformed 3D mesh using Marching Cubes
-\item \textbf{Correspondence detection}: The mesh is rendered to produce a depth map which can be used to generate correspondences. 
+\item \textbf{Correspondence detection}: The mesh is rendered to produce a depth map which can be used to generate correspondences.
 
-Additionally, SIFT features are detected in the live frame and stored by the system. Since SIFT features are robust to changes in transformation, they can be recognised again in later frames. This provides extra information to inform the process of correspondence detection. 
+Additionally, SIFT features are detected in the live frame and stored by the system. Since SIFT features are robust to changes in transformation, they can be recognised again in later frames. This provides extra information to inform the process of correspondence detection.
 
 \item \textbf{Deformation optimisation}: The deformation field is optimised so that it is consistent with the observed values of colour and depth.
 \end{enumerate}
 
-\noindent\textbf{Limitations}
 
-VolumeDeform comes with several limitations. Firstly, the feature tracking provided by the SIFT feature descriptor is not adequate when significant transformations are applied. SIFT feature descriptors are robust, but not robust enough given the computational resources available.
+\section{SDF-2-SDF}
 
-Additionally, high levels of deformation are not handled well by the system, due to over-distribution of deformation. This is as a result of the regularizer used by the system, which does not account for local rigidity.
+SDF-2-SDF is a technique for static reconstruction.
+
+precursor to KillingFusion, and designed in a very similar way
+
+operates more implicitly - no usage of point clouds, so data of depth image is abstracted into a SDF.
+
+For each depth image that is processed by the system, a signed distance field is created to represent the target object as viewed in that frame.
+
+this sdf is warped into the canonical SDF using a gradient descent scheme based on a custom error function.
+
+the canonical sdf represents the systems current best reconstruction of the target object.
+
+once the current frames sdf has been succsefully warped into the canonical sdf, then it is integrated into the canonical sdf to add any new geometry to the reconstruction.
+
+this process continues for each frame of data.
+
+\subsection{Signed distance field}
+
+A signed distance field (SDF) is a mapping $\phi : \mathbb{R}^3 \rightarrow  \mathbb{R}$ which yields the distance from the surface of an object at a particular point in space. 
+Points inside the object correspond to negative values; points outside the object correspond to positive values and points on the surface are mapped to zero.
+
+One of the important properties of a signed distance field is that the magnitude of the gradient of the SDF is equal to one at all points. This is called the level set property and is useful as a regularizer.
+
+additionally, the gradient of the sdf is equivalent to the normal of the surface at the given point.
 
 
-\subsection{KillingFusion}
+\subsection{Gradient descent scheme}
 
-KillingFusion operates very similarly to DynamicFusion, but introduces a much more sophisticated error function for estimating the warp field.
+
+
+simplest:
+
+$$ E_{geom} = \frac{1}{2} \sum\limits_{\textrm{all voxels}} (\phi_n(\Psi) - \phi_{global})^2  $$
+
+
+additionally, the normals can be constrained to be approximately 1. Originally the dot product of the two relevant normals was used
+
+$$ E_{norm} = \sum\limits_{\textrm{all voxels}}(1 - \nabla \phi_n(\Psi) \cdot \nabla\phi_{global}) $$
+
+These two error functions can be combined proportionally using a scaling factor $\alpha_{norm}$. This factor can take on values in the range $[0..1]$, but is usually set to zero to improve performance.
+
+$$E = E_{geom} + \alpha_{norm}E_{norm}$$
+
+$$ E'_{geom} = (\phi_n(\Psi) - \phi_{global}) \nabla \phi_n(\Psi)$$
+
+as long as the magnitude of the maximum update remains above a set threshold, this process of gradient descent will continue.
+
+\subsection{Canonical SDF}
+
+
+This canonical SDF is adjusted incrementally as new data is processed each frame. 
+at the end of each update to $\Psi$, the accurately posed SDF must be integrated into the canonical SDF. This is done using a weighted average of all previous SDFs
+
+\begin{align*}
+\Phi_{n+1}(\textbf{V}) &= \frac{W_n(\textbf{V})\Phi_n(\textbf{V}) + \omega_{n+1}(\textbf{V})\phi_{n+1}(\textbf{V})}{W_{n}(\textbf{V}) + \omega_{n+1}(\textbf{V}}\\
+W_{n+1}(\textbf{V}) &= W_n(\textbf{V}) + \omega_n(\textbf{V}) \\
+\end{align*}
+
+Here, the voxel weighting is defined as:
+
+\[
+    \omega(\textbf{V}) = \left\{\begin{array}{lr}
+    1, & \text{for } \phi_{true}(\textbf{V}) > - \eta\\
+    0, & \text{otherwise}\\
+    \end{array}\right\}
+\]
+
+$\eta$ is a hyper-parameter that determines the expected thickness of the object 
+
+
+\section{KillingFusion}
+
+KillingFusion operates very similarly to SDF-2-SDF, but introduces two other terms to the error function to enable it to estimate a non-rigid transformation.
 
 \begin{align*}
 E_{non-rigid}(\Psi) &= E_{data}(\Psi) + \omega_kE_{Killing}(\Psi) + \omega_sE_{level-set}(\Psi)\\
@@ -211,7 +296,7 @@ E'_{level-set}(\Psi) &= \frac{|\nabla_{\phi_n}(\Psi)| - 1}{|\nabla_{\phi_n}(\Psi
 
 This error function imposes three requirements on a potential solution:
 \begin{itemize}
-\item \textbf{Data term}: Similar to DynamicFusion, contains a component for non-rigid transformation. 
+\item \textbf{Data term}: Similar to DynamicFusion, contains a component for non-rigid transformation.
 \item \textbf{Killing condition}: This term requires the flow field to be a Killing vector field. If it satisifies this condition, then it will produce isometric motion Since a perfect isometric motion would impose only rigid transformations, this term only needs to be minimised so that the motion is approximately rigid. Additionally, the requirement has been weakened to make it computationally more efficient.
 \item \textbf{Level set property}: The minimisation of this term ensures that the gradient of the SDF function remains approximately 1
 \end{itemize}
@@ -221,56 +306,150 @@ The additional parameters $\omega_k$ and $\omega_s$ are used to adjust the relat
 This error function is also much more easily parallelised, leading to greatly increased performance.\\
 
 
-\noindent\textbf{Limitations}
 
-KillingFusion has been shown to handle fast inter-frame motion and topological changes much better than alternatives such as DynamicFusion or VolumeDeform. This means that it is more desirable as a solution than the other methods outlined here.
+\subsection{Deformation field}
 
-It does however still suffer from the same limitations as all of these methods in that it can only be applied to a small volume until further improvements to the method are made.
+The deformation field is a mapping $\Psi : \mathbb{R}^3 \rightarrow \mathbb{R}^3$ that maps a point in space to its deformation relative to the canonical SDF.
 
-\section{Project Plan}
+The deformation field is only defined over the volume being reconstructed. Any points queried outside the volume return a deformation of zero.
 
-\subsection{Milestones}
+In practical terms, the volume is discretized into voxels of a fixed length. At each voxel, a single displacement vector $u : \mathbb{R}^3$ is stored to describe the deformation field at that point.
+
+The main task of KillingFusion is to estimate the value of this deformation field, using the error functions outlined.
+
+\subsection{Killing vector field}
+
+\chapter{Implementation details}
+
+
+\section{Signed distance field}
+
+The signed distance field is ultimately produced from the depth image provided by the Kinect camera. 
+Instead of using the depth data to produce a point cloud, an implicit technique is used instead.
+We define the SDF as follows:
+
+$$\phi_{\text{true}}(\textbf{V}) = D(\pi(\textbf{V})) - \textbf{V}_Z$$
+
+\[
+    \phi(\textbf{V}) = \left\{\begin{array}{lr}
+    -1,                    & \text{for } \phi_{true}(\textbf{V}) < - \delta\\
+    \phi_{true}(\textbf{V}) / \delta, & \text{for } -\delta \leq \phi_{true}(\textbf{V}) \leq \delta \\
+    1,                     & \text{for } \phi_{true}(\textbf{V}) > \delta\\
+    \end{array}\right\}
+\]
+
+\subsection{Projection}
+
+Here, $D(x)$ is the depth data at the point $x$ in the image provided by the Kinect camera.
+
+$\pi(\textbf{V})$ is the function which projects the centre of the voxel \textbf{V} into a 2-dimensional point in the image plane. There are two main choices for projection:
 \begin{itemize}
-\item February: Fully understand codebase, start programming.
-\item March: Reliably estimate warp field.
-\item April: Produce correct behaviour for DynamicFusion, not necessarily real-time.
-\item May: Have code running on GPU using CUDA, produce real-time solution.
-\item 11th May: Start working on final report.
-\item June: All coding finished.
-\item 18th June: Final report submission.
-\end{itemize}
+\item \textbf{Perspective}: This provides a more realistic model from the point-of-view of the camera filming the footage. 
+However, the projection requires more expensive matrix multiplication. Additionally, an expensive vector magnitude operation is required to calculate depth from the camera.
+Perspective projection also leaves large areas of the volume which cannot be reconstructed due to being projected outside of the volume.
 
-\subsection{Minimum Viable Product}
+\item \textbf{Orthographic}: This method simply discards the z-component of the vector to determine where it lies in the depth image. This is much more efficient, as it also allows distance from the camera to be efficiently calculated directly from the z-component.
+\end{itemize} 
 
-In a worst-case scenario, I may fail to meet the majority of the targets I set myself in terms of implementation as well as performance. In this case, I would be able to fall back on an offline implementation of DynamicFusion. This would mean I could demonstrate the functionality of the system, without needing it to operate in real-time.
+In the end, orthographic projection was used. This is because the signed distance function is evaluated an extremely large number of times (numbers?) each iteration, so must be very efficient.
 
-\subsection{Possible Extensions}
+\subsection{Role of $\delta$}
 
-As a possible extension to the project, a tool to visualise the canonical model could be produced. In particular, to see how the canonical model evolves in real-time would be very useful to the user.
+As part of the implementation of the SDF, the true distance from the surface is divided by $\delta$ and clamped to the range $[-1 \ldots 1]$.
 
+This has the effect of limiting the estimation of the deformation field to areas near the surface of the surface boundary of the SDF. 
 
-\section{Evaluation Plan}
-\subsection{Required Functionality}
+If a point lies too far outside the surface, then it is simply designated as `somewhere outside' the surface and treated like all other points of its kind. The same is true for points far inside the surface.
 
-At a bare minimum, the system must be able to reconstruct a dynamic scene, not necessarily in real-time. 
+This ensures that unnecessary calculations are not carried out for voxels which are ultimately irrelevant to the geometry of the surface.
 
-Once the correct behaviour has been implemented, then the system can be optimised to work in real-time. This is the scenario I would expect to operate in.
-
-If the project progresses well, the system could be tested under unfavourable conditions, such as large inter-frame movement or rapid topology changes. It could then be improved to handle these cases more accurately, perhaps incorporating techniques from algorithms such as KillingFusion.
-
-If the project has progressed excellently, several extensions can be pursued as outlined in the last section.
+in keeping with killingfusion paper, a value of delta was used ten times the voxel length.
 
 
-\subsection{Performance Metrics}
+\section{Voxel grid}
 
-It is very simple to evaluate the performance of the final system, as its efficiency is clearly observable in the average framerate it achieves.
+the volume to be reconstructed is divided up into a regular grid of voxels. resolution 5-10 millimetres - mention sensor error of kinect camera
 
-Ideally, the system will be able to run live and smoothly. This would mean achieving the same framerate as the Kinect sensor, which is 30Hz.  Practically speaking, it is likely that the system will not achieve such high performance. Therefore, a reduced target framerate of approximately 10Hz or over can be considered more achievable, while still providing a live ....
+a gradient descent scheme is used to iteratively align the current SDF to the canonical sdf. this process is repeated until the magnitude of the maximum update is less than a certain threshold (0.1 millimetres)
 
-In the case that this target is not reached either, I will aim to produce an offline solution as a fall-back. Although the processing time will cease to be of such high importance in this scenario, it can still be used as a valid metric of the system's efficiency.
+$$\Psi_{n+1} = \Psi_n - \alpha E(\Psi)$$
+
+\subsection{Canonical SDF}
+
+In practice, the SDFs produced can be sampled at each voxel throughout the volume and a simple test can be performed to determine whether or not to increment $\Phi_n(\textbf{V})$ and $W_n(\textbf{V})$
+
+the canonical sdf samples previous sdfs
+
+at each voxel, two values are stored: omega and phi.
+if $\phi_{true}(\textbf{V}) > - \eta$, then omega is incremented and the value of $\phi_{true}$ is added to the total of phi.
+
+then, if the distance needs to be queried, $\frac{\phi}{\omega}$ is returned.
+
+\subsection{Deformation field}
+
+deformation field also split along voxel grid.
+
+single vector stored at each voxel.
+
+since each frame is initialised with the previous frames deformation, only one deformation field needs to be created in memory. this field is continually updated and shared by all SDFs created.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Contributions}
 
 
-\bibliographystyle{plain}
-\bibliography{report}
+\section{CPU version}
+
+The code for this part of the project can be found at:
+
+\begin{center}
+\verb|github.com/millie-crowther/fusion|
+\end{center}
+
+\subsection{Multi-threading}
+
+The design of the KillingFusion system is very well suited to parallelism, since the update of each voxel only depends on the evaluation of the error function at that voxel. 
+Of course, given the size of the voxel grid involved, it is best to use the massive parallelism of a GPU to maximise performance.
+However, it is still possible to parallelise the system on the CPU and achieve a moderate increase in performance. 
+
+make a diagram for running time with different sized thread pools
+
+\section{GPU version}
+
+The code for this part of the project can be found at:
+
+\begin{center}
+\verb|github.com/millie-crowther/gpu_fusion|
+\end{center}
+
+\subsection{C++}
+
+\subsection{CUDA}
+
+Four entry points to CUDA code from host:
+
+\begin{enumerate}
+\item \textbf{Initialise}: Initialises the system, sets warp field to zero. samples first SDF into canonical sdf. allocates memory.
+
+\item \textbf{Estimate} $\Psi$: Most important kernel launch. updates deformation field.
+
+\item \textbf{Get Canonical SDF}: copies the canonical sdf from device to host so that it can be viewed.
+
+\item \textbf{Clean up}: cleans up the system. de-allocates memory
+
+\end{enumerate}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Experimental Results}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Conclusion}
+
+
+%% bibliography
+\bibliographystyle{apa}
+
 
 \end{document}
