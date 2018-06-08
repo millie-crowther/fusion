@@ -5,7 +5,7 @@ int main(){
 
     // declare hyper-parameters for system
     min_params_t ps;
-    ps.is_multithreaded = false;
+    ps.is_multithreaded = true;
     ps.frames = 550;
     
     // killing fusion paper part 4.2
@@ -26,7 +26,7 @@ int main(){
     // killing fusion paper part 3.1 
     ps.delta = ps.voxel_length * 10;
 
-    ps.max_iterations = 50;
+    ps.max_iterations = 32;
        
     f.fusion(&ps);
     

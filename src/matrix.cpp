@@ -60,8 +60,8 @@ matrix_t::hessian(function_t<float> f, point_t p){
     float ms[9];
     for (int i = 0; i < 3; i++){
 	for (int j = 0; j < 3; j++){
-	    auto dxj = f.differentiate(j);
-	    auto dxixj = dxj.differentiate(i);
+	    auto dxj = f.differentiate(i);
+	    auto dxixj = dxj.differentiate(j);
             ms[i + j * 3] = dxixj(p);
 	}
     }

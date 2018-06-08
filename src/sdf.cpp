@@ -194,11 +194,19 @@ sdf_t::fuse(bool is_rigid, canon_sdf_t * canon){
             // perform check on deformation field to see if it has diverged
 	    point_t d = deform_field[x][y][z];
             if (!std::isfinite(d.x) || !std::isfinite(d.y) || !std::isfinite(d.z)){
-                std::cout << "Error: deformation field has diverged: " 
-		          << glm::to_string(deform_field[x][y][z])
-		          << " at: " << glm::to_string(p) << std::endl;
-                throw -1;
+          //      std::cout << "Error: deformation field has diverged: " 
+	//	          << glm::to_string(deform_field[x][y][z])
+	//	          << " at: " << glm::to_string(p) << std::endl;
+       //         throw -1;
+  
+		deform_field[x][y][z] = point_t(0.0f);
+		d = point_t(0.0f);
             }
+
+	    float max_length = 200.0f;
+	    if (glm::length(d) > max_length){
+	        deform_field[x][y][z] *= max_length / glm::length(d);
+	    }
 	}
     };
 
@@ -226,6 +234,7 @@ point_t
 sdf_t::energy(point_t v, canon_sdf_t * c, float o_k, float o_s, float gamma, float eps){
     // function that calculates the three components of the energy gradient as 
     // outlined in the killing fusion paper 
+
     return 
          data_energy(v, c) +
          killing_energy(v, gamma) * o_k +

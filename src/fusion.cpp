@@ -63,9 +63,9 @@ fusion_t::fusion(min_params_t * ps){
         sdf_t sdf = get_sdf(filenames[i], ps);
 
         // rigid component
-        std::cout << "Calculating rigid deformation..." << std::endl;
-        sdf.fuse(true, canon);
-        std::cout << "Rigid deformation converged." << std::endl;
+//        std::cout << "Calculating rigid deformation..." << std::endl;
+//        sdf.fuse(true, canon);
+//        std::cout << "Rigid deformation converged." << std::endl;
  
         // non-rigid component
         std::cout << "Calculating non-rigid deformation..." << std::endl;
