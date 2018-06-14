@@ -14,7 +14,7 @@ public:
     typedef std::vector<std::vector<std::vector<point_t>>> deform_field_t;
 
     // constructor and destructor
-    sdf_t(depth_map_t depths, min_params_t * ps);
+    sdf_t(int id, depth_map_t depths, min_params_t * ps);
     ~sdf_t();
 
     // main fusion method
@@ -22,7 +22,8 @@ public:
 
     // signed distance function
     float distance(point_t p);
-    float phi_true(point_t p);
+    float distance_undeformed(point_t p);
+    float weight(point_t p);
 
 private:
     // singleton thread pool
@@ -34,17 +35,9 @@ private:
     static deform_field_t deform_field;
 
     // private fields
+    int id;
     depth_map_t depths;
     min_params_t * ps;
- 
-    // differentiable functions (see function.h)
-    function_t<float> * phi;
-    function_t<point_t> * psi;
-    function_t<float> * psi_u;
-    function_t<float> * psi_v;
-    function_t<float> * psi_w;
-
-    // gradient descent functions
 
     // energy functions 
     point_t energy(point_t p, canon_sdf_t * c, float o_k, float o_s, float gamma, float eps);
@@ -53,11 +46,12 @@ private:
     point_t level_set_energy(point_t p, float epsilon);
     
     // other private methods private methods
+    float phi_data(int x, int y, float z);
+    float phi_true(point_t p);
     point_t deformation_at(point_t p);
     point_t distance_gradient(point_t p);
     float interpolate1D(float a, float b, float alpha);
     float interpolate2D(float a, float b, float c, float d, float alpha, float beta);
-    float interpolate3D(float * xs, float alpha, float beta, float gamma);
 };
 
 #endif

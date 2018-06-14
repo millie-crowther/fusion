@@ -12,18 +12,21 @@ private:
     // target function
     std::function<T(point_t)> f;
 
+    float delta;
+
 public:
-    function_t(std::function<T(point_t)> f){
+    function_t(std::function<T(point_t)> f, float delta){
         this->f = f;
+        this->delta = delta;
     }
+
+    function_t(std::function<T(point_t)> f) : function_t(f, 10.0f) { }
 
     T operator()(point_t p){
         return f(p);
     }
 
     function_t differentiate(int axis){
-        const float delta = 10;
-
         point_t axes[3] = {
             point_t(delta, 0, 0),
             point_t(0, delta, 0),
@@ -31,9 +34,9 @@ public:
         };
         point_t u = axes[axis];
 
-	return function_t([=](point_t x){
+	return function_t([&](point_t x){
             return (this->f(x + u) - this->f(x - u)) / (2.0f * delta);
-        });
+        }, delta);
     }
 };
 

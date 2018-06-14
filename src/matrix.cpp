@@ -2,6 +2,7 @@
 
 #include "sdf.h"
 #include <iostream>
+#include <glm/gtx/string_cast.hpp>
 
 matrix_t::matrix_t(float * ms){
     if (ms != nullptr){
@@ -56,26 +57,44 @@ matrix_t::stack(){
 }
 
 matrix_t
-matrix_t::hessian(function_t<float> f, point_t p){
+matrix_t::hessian(std::function<float(point_t)> f, point_t p, float l){
     float ms[9];
-    for (int i = 0; i < 3; i++){
-	for (int j = 0; j < 3; j++){
-	    auto dxj = f.differentiate(i);
-	    auto dxixj = dxj.differentiate(j);
-            ms[i + j * 3] = dxixj(p);
-	}
+
+    point_t axes[3] = {
+        point_t(l, 0, 0),
+        point_t(0, l, 0),
+        point_t(0, 0, l),
+    };
+
+    for (int x = 0; x < 3; x++){
+        for (int y = 0; y < 3; y++){
+            point_t a = p + axes[x] + axes[y];
+            point_t b = p + axes[x] - axes[y];
+            point_t c = p - axes[x] + axes[y];
+            point_t d = p - axes[x] - axes[y];
+
+            float p = f(a);
+            float q = f(b);
+            float r = f(c);
+            float s = f(d);
+
+            float u = (p - q) / (2.0f * l);
+            float v = (r - s) / (2.0f * l);
+         
+            float res =  (u - v) / (2.0f * l);
+            ms[x + y * 3] = res;
+        }
     }
 
-    auto r = matrix_t(ms);    
-    return r;
+    return matrix_t(ms);    
 }
 
 matrix_t
-matrix_t::jacobian(function_t<point_t> f, point_t p){
+matrix_t::jacobian(std::function<point_t(point_t)> f, point_t p, float l){
     point_t j[3] = {
-        f.differentiate(0)(p),
-        f.differentiate(1)(p),
-        f.differentiate(2)(p)
+        (f(p + point_t(l, 0, 0)) - f(p - point_t(l, 0, 0))) / (2.0f * l),
+        (f(p + point_t(0, l, 0)) - f(p - point_t(0, l, 0))) / (2.0f * l),
+        (f(p + point_t(0, 0, l)) - f(p - point_t(0, 0, l))) / (2.0f * l)
     };
 
     float ms[9];
@@ -83,8 +102,7 @@ matrix_t::jacobian(function_t<point_t> f, point_t p){
         ms[i] = j[i % 3][i / 3];
     }
 
-    auto r = matrix_t(ms);    
-    return r;
+    return matrix_t(ms);    
 }
 
 float

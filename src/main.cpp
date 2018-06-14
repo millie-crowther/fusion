@@ -1,5 +1,9 @@
 #include "fusion.h"
 
+#include "matrix.h"
+#include <iostream>
+#include <glm/gtx/string_cast.hpp>
+
 int main(){
     fusion_t f;
 
@@ -19,14 +23,14 @@ int main(){
     ps.gamma = 0.1f;
    
     // empirically determined
-    ps.sdf_eta = 100;
-    ps.size = point_t(640, 480, 1500);
-    ps.voxel_length = 10; 
+    ps.sdf_eta = 75;
+    ps.size = point_t(640, 480, 1000);
+    ps.voxel_length = 12; 
     
     // killing fusion paper part 3.1 
     ps.delta = ps.voxel_length * 10;
 
-    ps.max_iterations = 32;
+    ps.max_iterations = 64;
        
     f.fusion(&ps);
     

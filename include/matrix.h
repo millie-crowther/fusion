@@ -2,6 +2,7 @@
 #define MATRIX_H
 
 #include <vector>
+#include <functional>
 #include "function.h"
 
 class matrix_t {
@@ -14,8 +15,8 @@ private:
 
 public:
     // factory methods
-    static matrix_t hessian(function_t<float> f, point_t v);
-    static matrix_t jacobian(function_t<point_t> f, point_t v);
+    static matrix_t hessian(std::function<float(point_t)> f, point_t v, float l);
+    static matrix_t jacobian(std::function<point_t(point_t)> f, point_t v, float l);
 
     // overridden operator
     point_t operator*(point_t v);

@@ -17,7 +17,7 @@ fusion_t::~fusion_t(){
 }
 
 sdf_t 
-fusion_t::get_sdf(std::string filename, min_params_t * ps){
+fusion_t::get_sdf(int id, std::string filename, min_params_t * ps){
     std::cout << "loading depth map: " << filename << std::endl; 
 
     CImg<unsigned short> image(filename.c_str());
@@ -32,7 +32,7 @@ fusion_t::get_sdf(std::string filename, min_params_t * ps){
         }
     }
 
-    return sdf_t(depths, ps);
+    return sdf_t(id, depths, ps);
 }
 
 void
@@ -52,15 +52,18 @@ fusion_t::fusion(min_params_t * ps){
     load_filenames(&filenames, ps->frames);
 
     canon = new canon_sdf_t(ps); 
-    sdf_t initial = get_sdf(filenames[0], ps);
+    sdf_t initial = get_sdf(0, filenames[0], ps);
     canon->add_sdf(&initial);
-    canon->save_mesh("umbrella", 0);
+
+    auto phi_global = [&](point_t p){ return canon->distance(p); };
+
+    canon_sdf_t::save_mesh(phi_global, "umbrella", 0);
 
     auto start = std::chrono::system_clock::now();
     for (int i = 1; i < filenames.size(); i++){
         std::cout << "Frame number: " << i << std::endl;     
 
-        sdf_t sdf = get_sdf(filenames[i], ps);
+        sdf_t sdf = get_sdf(i, filenames[i], ps);
 
         // rigid component
 //        std::cout << "Calculating rigid deformation..." << std::endl;
@@ -74,7 +77,11 @@ fusion_t::fusion(min_params_t * ps){
         canon->add_sdf(&sdf);
 
         if (i % 30 == 0){
-            canon->save_mesh("umbrella", i);
+            canon_sdf_t::save_mesh(phi_global, "umbrella", i);
+            auto phi_null   = [&](point_t p){ return sdf.distance_undeformed(p); };
+            auto phi_n      = [&](point_t p){ return sdf.distance(p); };
+            canon_sdf_t::save_mesh(phi_null, "umbrella", i+1);
+            canon_sdf_t::save_mesh(phi_n, "umbrella", i+2);
         }
 
         std::cout << std::endl;
@@ -86,5 +93,5 @@ fusion_t::fusion(min_params_t * ps){
     std::cout << "Total time elapsed: " << t << " seconds." << std::endl;
     std::cout << "Average framerate: " << ps->frames / t << " frames per second." << std::endl;
 
-    canon->save_mesh("umbrella", ps->frames);
+    canon_sdf_t::save_mesh(phi_global, "umbrella", ps->frames);
 }

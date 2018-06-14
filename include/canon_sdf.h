@@ -3,6 +3,7 @@
 
 #include "sdf.h"
 #include <string>
+#include <functional>
 
 class canon_sdf_t {
 public:
@@ -13,7 +14,7 @@ public:
     float distance(point_t p);
     void add_sdf(sdf_t * new_sdf);
 
-    void save_mesh(std::string model_name, int frame);
+    static void save_mesh(std::function<float(point_t)> f, std::string model_name, int frame);
 
 private:
     // types
@@ -31,7 +32,7 @@ private:
     struct cell_t {
         float value[8];
         point_t point[8];
-        cell_t(point_t p, float l, canon_sdf_t * sdf);
+        cell_t(point_t p, float l, std::function<float(point_t)> f);
     };
 
     typedef std::vector<std::vector<std::vector<weight_sdf_t>>> sampled_sdf_t;
@@ -39,17 +40,15 @@ private:
     
     // private fields
     sampled_sdf_t sdf;
-    point_t size;
-    float voxel_length;
+    static point_t size;
+    static float voxel_length;
     float eta;
-    function_t<float> * phi_global;
 
     // private functions
-    float weight(float phi_true);
-    point_t normal(point_t p);
-    point_t interpolate(float isolevel, point_t a, point_t b, float alpha, float beta);
-    void create_mesh(float isolevel, mesh_t * mesh);
-    void create_mesh_for_cell(float isolevel, mesh_t * mesh, cell_t * cell);
+    static point_t normal(std::function<float(point_t)> f, point_t p);
+    static point_t interpolate(float isolevel, point_t a, point_t b, float alpha, float beta);
+    static void create_mesh(std::function<float(point_t)> f, float isolevel, mesh_t * mesh);
+    static void create_mesh_for_cell(float isolevel, mesh_t * mesh, cell_t * cell);
 };
 
 #endif

@@ -6,6 +6,9 @@
 #include <glm/gtx/string_cast.hpp>
 #include <cmath>
 
+float canon_sdf_t::voxel_length;
+point_t canon_sdf_t::size;
+
 canon_sdf_t::canon_sdf_t(min_params_t * ps){
     voxel_length = ps->voxel_length;
     eta = ps->sdf_eta;    
@@ -22,14 +25,10 @@ canon_sdf_t::canon_sdf_t(min_params_t * ps){
             }
         }
     }
-
-    phi_global = new function_t<float>([=](point_t p){
-        return distance(p);
-    });
 }
 
 canon_sdf_t::~canon_sdf_t(){
-    delete phi_global;
+
 }
 
 float 
@@ -44,10 +43,12 @@ canon_sdf_t::distance(point_t p){
     ){
 	return 1;
     } else if (sdf[x][y][z].omega == 0){
-        return 1;
+        return 1.0f;
     } else {
         return sdf[x][y][z].phi / sdf[x][y][z].omega;
     }
+
+   
 }
 
 void
@@ -55,19 +56,14 @@ canon_sdf_t::add_sdf(sdf_t * new_sdf){
     for (int x = 0; x < sdf.size(); x++){
         for (int y = 0; y < sdf[0].size(); y++){
             for (int z = 0; z < sdf[0][0].size(); z++){
-                point_t p = point_t(x, y, z) * voxel_length;
+                point_t p = (point_t(x, y, z) + point_t(0.5f)) * voxel_length;
                 float phi = new_sdf->distance(p);
-		float w = weight(new_sdf->phi_true(p));
+		float w = new_sdf->weight(p);
                 sdf[x][y][z].phi += phi * w;
                 sdf[x][y][z].omega += w;
             }
         }
     } 
-}
-
-float
-canon_sdf_t::weight(float phi_true){
-    return phi_true > -eta ? 1 : 0;
 }
 
 canon_sdf_t::triangle_t::triangle_t(point_t a, point_t b, point_t c){
@@ -76,7 +72,7 @@ canon_sdf_t::triangle_t::triangle_t(point_t a, point_t b, point_t c){
     vertices[2] = c;
 }
 
-canon_sdf_t::cell_t::cell_t(point_t p, float l, canon_sdf_t * sdf){
+canon_sdf_t::cell_t::cell_t(point_t p, float l, std::function<float(point_t)> f){
     // convention used by Bourke is a bit strange but hey
     point[0] = p + point_t(0, 0, l);
     point[1] = p + point_t(l, 0, l);
@@ -88,18 +84,18 @@ canon_sdf_t::cell_t::cell_t(point_t p, float l, canon_sdf_t * sdf){
     point[7] = p + point_t(0, l, 0);
 
     for (int i = 0; i < 8; i++){
-        value[i] = sdf->distance(point[i]);
+        value[i] = f(point[i]);
     }
 }
 
 void
-canon_sdf_t::create_mesh(float isolevel, mesh_t * mesh){
+canon_sdf_t::create_mesh(std::function<float(point_t)> f, float isolevel, mesh_t * mesh){
     float l = voxel_length / 2;
     for (int x = 0; x < size.x; x += l){
         for (int y = 0; y < size.y; y += l){
             for (int z = 0; z < size.z; z += l){
                 point_t p = point_t(x, y, z);
-                cell_t cell(p, l, this);
+                cell_t cell(p, l, f);
 
                 create_mesh_for_cell(isolevel, mesh, &cell);
             }
@@ -108,16 +104,17 @@ canon_sdf_t::create_mesh(float isolevel, mesh_t * mesh){
 }
 
 point_t
-canon_sdf_t::normal(point_t p){
+canon_sdf_t::normal(std::function<float(point_t)> f, point_t p){
+    float l = voxel_length;
     return point_t(
-        phi_global->differentiate(0)(p),
-        phi_global->differentiate(1)(p),
-        phi_global->differentiate(2)(p)
-    );
+        f(p + point_t(l, 0, 0)) - f(p - point_t(l, 0, 0)),
+        f(p + point_t(0, l, 0)) - f(p - point_t(0, l, 0)),
+        f(p + point_t(0, 0, l)) - f(p - point_t(0, 0, l))
+    ) / (2.0f * l);
 }
 
 void
-canon_sdf_t::save_mesh(std::string model_name, int frame){
+canon_sdf_t::save_mesh(std::function<float(point_t)> f, std::string model_name, int frame){
     std::cout << "Saving SDF to mesh..." << std::endl;   
 
     std::string padding = "";
@@ -132,7 +129,7 @@ canon_sdf_t::save_mesh(std::string model_name, int frame){
 
     // create triangles
     mesh_t mesh;
-    create_mesh(0, &mesh);
+    create_mesh(f, 0, &mesh);
 
     // create default material file
     std::ofstream mat_file;
@@ -178,7 +175,7 @@ canon_sdf_t::save_mesh(std::string model_name, int frame){
             mesh_file << "vn ";
 
             for (int j = 0; j < 3; j++){
-                mesh_file << normal(tri.vertices[i])[j] << " ";
+                mesh_file << normal(f, tri.vertices[i])[j] << " ";
             }
             mesh_file << std::endl;
         }
@@ -575,7 +572,7 @@ canon_sdf_t::create_mesh_for_cell(float isolevel, mesh_t * mesh, cell_t * cell){
             vertices[triTable[cubeindex][i+1]],
             vertices[triTable[cubeindex][i+2]]
         );
-
+/*
         bool bad = false;
         for (int i = 0; i < 3; i++){
             for (int j = 0; j < 3; j++){
@@ -598,7 +595,7 @@ canon_sdf_t::create_mesh_for_cell(float isolevel, mesh_t * mesh, cell_t * cell){
 
             throw -1;
         }
-      
+  */    
         mesh->push_back(tri);
     } 
 
