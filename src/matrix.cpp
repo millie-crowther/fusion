@@ -12,8 +12,25 @@ matrix_t::matrix_t(float * ms){
     }
 }
 
+matrix_t::matrix_t(const matrix_t & other){
+    for (int i = 0; i < 9; i++){
+	m[i] = other.m[i];
+    }
+}
+
 void
 matrix_t::print(){
+    bool nonzero = false;
+    for (int i = 0; i < 9; i++){
+	if (m[i] != 0){
+	    nonzero = true;
+	}
+    }
+    
+    if (!nonzero){
+	return;
+    }
+
     for (int i = 0; i < 9; i++){
         if (i % 3 == 0) std::cout << '[';
         std::cout << m[i];
@@ -58,6 +75,19 @@ matrix_t::stack(){
 
 matrix_t
 matrix_t::hessian(std::function<float(point_t)> f, point_t p, float l){
+    // hessian = transpose(hessian(nabla(f)))
+    auto nabla_f = [&](point_t v){
+	return point_t(
+	    f(v + point_t(l, 0, 0)) - f(v - point_t(l, 0, 0)),
+	    f(v + point_t(0, l, 0)) - f(v - point_t(0, l, 0)),
+	    f(v + point_t(0, 0, l)) - f(v - point_t(0, 0, l))
+	) / (2.0f * l);
+    };
+
+    matrix_t result = matrix_t::jacobian(nabla_f, p, l);
+    return result.transpose();
+
+    /*
     float ms[9];
 
     point_t axes[3] = {
@@ -80,13 +110,13 @@ matrix_t::hessian(std::function<float(point_t)> f, point_t p, float l){
 
             float u = (p - q) / (2.0f * l);
             float v = (r - s) / (2.0f * l);
-         
+
             float res =  (u - v) / (2.0f * l);
             ms[x + y * 3] = res;
         }
     }
 
-    return matrix_t(ms);    
+    return matrix_t(ms);    */
 }
 
 matrix_t

@@ -2,6 +2,7 @@
 #define MIN_PARAMS_H
 
 #include "function.h"
+#include <string>
 
 struct min_params_t {
     // learning rates for rigid and non-rigid alignment
@@ -32,6 +33,10 @@ struct min_params_t {
 
     float delta;
     float sdf_eta;
+
+    float near_clip;
+
+    std::string dataset;
 };
 
 #endif

@@ -18,7 +18,7 @@ public:
     ~sdf_t();
 
     // main fusion method
-    void fuse(bool is_rigid, canon_sdf_t * canon);
+    void fuse(bool is_rigid, canon_sdf_t * canon, bool * cont);
 
     // signed distance function
     float distance(point_t p);
@@ -46,12 +46,14 @@ private:
     point_t level_set_energy(point_t p, float epsilon);
     
     // other private methods private methods
+    float interpolate_sdf(point_t p);
     float phi_data(int x, int y, float z);
     float phi_true(point_t p);
     point_t deformation_at(point_t p);
     point_t distance_gradient(point_t p);
     float interpolate1D(float a, float b, float alpha);
     float interpolate2D(float a, float b, float c, float d, float alpha, float beta);
+    float interpolate3D(float * vs, point_t alpha);
 };
 
 #endif

@@ -43,7 +43,7 @@ canon_sdf_t::distance(point_t p){
     ){
 	return 1;
     } else if (sdf[x][y][z].omega == 0){
-        return 1.0f;
+        return 1;
     } else {
         return sdf[x][y][z].phi / sdf[x][y][z].omega;
     }

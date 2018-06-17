@@ -10,7 +10,7 @@ int main(){
     // declare hyper-parameters for system
     min_params_t ps;
     ps.is_multithreaded = true;
-    ps.frames = 550;
+    ps.frames = 715;
     
     // killing fusion paper part 4.2
     ps.epsilon = 0.00005f;
@@ -23,15 +23,18 @@ int main(){
     ps.gamma = 0.1f;
    
     // empirically determined
-    ps.sdf_eta = 75;
-    ps.size = point_t(640, 480, 1000);
-    ps.voxel_length = 12; 
-    
+    ps.sdf_eta = 120;
+    ps.size = point_t(640, 480, 500);
+    ps.voxel_length = 10; 
+    ps.near_clip = 500;
+
     // killing fusion paper part 3.1 
     ps.delta = ps.voxel_length * 10;
 
-    ps.max_iterations = 64;
-       
+    ps.max_iterations = 32;
+
+    ps.dataset = "Snoopy";
+
     f.fusion(&ps);
     
     return 0;

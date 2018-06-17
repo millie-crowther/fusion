@@ -9,11 +9,14 @@ class matrix_t {
 private:
     // private constructor to prevent construction
     matrix_t(float * ms);    
+    
 
     // data
     float m[9];
 
 public:
+    matrix_t(const matrix_t & other);
+
     // factory methods
     static matrix_t hessian(std::function<float(point_t)> f, point_t v, float l);
     static matrix_t jacobian(std::function<point_t(point_t)> f, point_t v, float l);
