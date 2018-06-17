@@ -297,7 +297,9 @@ sdf_t::data_energy(point_t p, canon_sdf_t * canon){
     // measures how well aligned the two SDFs are
     point_t g;
     g = distance_gradient(p);
-
+    if (glm::length(g) > 0){
+	g = glm::normalize(g);
+    }
     /*
     bool pr = g.x != 0 && g.y != 0 && g.z != 0;
 
@@ -329,10 +331,14 @@ point_t
 sdf_t::level_set_energy(point_t p, float epsilon){
     // level set energy gradient component
     // requires the magnitude of the gradient of the SDF to be unity
+    point_t g   = distance_gradient(p);
+   
+    if (glm::length(g) == 0){
+	return point_t(0);
+    }
 
     auto phi = [&](point_t v){ return distance(v) * ps->delta; };
     matrix_t h  = matrix_t::hessian(phi, p, ps->voxel_length);
-    point_t g   = distance_gradient(p);
 
     float alpha = (glm::length(g) - 1) / (glm::length(g) + epsilon);
 
@@ -360,8 +366,8 @@ sdf_t::killing_energy(point_t p, float gamma){
 	}
 
 
-	if (result < 0) std::cout << result << std::endl;
-	return result;
+//	if (result > 1) std::cout << result << std::endl;
+	return std::min(result, 25.0f);
     };
 
 

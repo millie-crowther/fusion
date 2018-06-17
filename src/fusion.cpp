@@ -98,7 +98,7 @@ fusion_t::fusion(min_params_t * ps){
         std::cout << "Non-rigid deformation converged." << std::endl;
         canon->add_sdf(&sdf);
 
-        if (i == 12 || i % 25 == 0){
+        if (i % 25 == 0){
             canon_sdf_t::save_mesh(phi_global, ps->dataset, i);
             auto phi_null   = [&](point_t p){ return sdf.distance_undeformed(p); };
             auto phi_n      = [&](point_t p){ return sdf.distance(p); };

@@ -23,7 +23,7 @@ int main(){
     ps.gamma = 0.1f;
    
     // empirically determined
-    ps.sdf_eta = 120;
+    ps.sdf_eta = 100;
     ps.size = point_t(640, 480, 500);
     ps.voxel_length = 10; 
     ps.near_clip = 500;
