@@ -1,8 +1,10 @@
 #ifndef MIN_PARAMS_H
 #define MIN_PARAMS_H
 
-#include "function.h"
 #include <string>
+#include <glm/glm.hpp>
+
+typedef glm::vec3 point_t;
 
 struct min_params_t {
     // learning rates for rigid and non-rigid alignment

@@ -3,7 +3,8 @@
 
 #include <vector>
 #include <functional>
-#include "function.h"
+
+#include "min_params.h"
 
 class matrix_t {
 private:

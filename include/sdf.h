@@ -18,7 +18,7 @@ public:
     ~sdf_t();
 
     // main fusion method
-    void fuse(bool is_rigid, canon_sdf_t * canon, bool * cont);
+    void fuse(canon_sdf_t * canon);
 
     // signed distance function
     float distance(point_t p);

@@ -33,7 +33,7 @@ fusion_t::get_sdf(int frame, min_params_t * ps){
         
         for (int y = 0; y < image.height(); y++){
             int d = *image.data(x, y, 0, 0);
-	    int flag = *omask.data(x, y, 0, 0);
+	    int flag =  *omask.data(x, y, 0, 0);
 
 	    if (flag == 255 && d != 0){
                 depths->at(x).push_back(d);
@@ -67,7 +67,6 @@ fusion_t::get_filename(std::string dataset, int frame, bool is_kf_format, bool i
 
 void
 fusion_t::fusion(min_params_t * ps){
-
     canon = new canon_sdf_t(ps); 
     sdf_t initial = get_sdf(0, ps);
     canon->add_sdf(&initial);
@@ -81,29 +80,20 @@ fusion_t::fusion(min_params_t * ps){
         std::cout << "Frame number: " << i << std::endl;     
 
         sdf_t sdf = get_sdf(i, ps);
-
-        // rigid component
-//        std::cout << "Calculating rigid deformation..." << std::endl;
-  //      sdf.fuse(true, canon);
-    //    std::cout << "Rigid deformation converged." << std::endl;
- 
+        
         // non-rigid component
         std::cout << "Calculating non-rigid deformation..." << std::endl;
-	bool cont = true;
-	//for (int i = 1; cont && i < ps->max_iterations; i++){
-	  //  std::cout << "Iteration " << i << "..." << std::endl;
-	   // cont = false;
-            sdf.fuse(false, canon, &cont);
-	//}
+        sdf.fuse(canon);
         std::cout << "Non-rigid deformation converged." << std::endl;
+
         canon->add_sdf(&sdf);
 
-        if (i % 25 == 0){
+        if (i % 5 == 0){
             canon_sdf_t::save_mesh(phi_global, ps->dataset, i);
             auto phi_null   = [&](point_t p){ return sdf.distance_undeformed(p); };
             auto phi_n      = [&](point_t p){ return sdf.distance(p); };
-            canon_sdf_t::save_mesh(phi_null, ps->dataset, i+1);
-            canon_sdf_t::save_mesh(phi_n, ps->dataset, i+2);
+            canon_sdf_t::save_mesh(phi_null, ps->dataset + "-live", i);
+            canon_sdf_t::save_mesh(phi_n, ps->dataset + "-deformed", i);
         }
 
         std::cout << std::endl;

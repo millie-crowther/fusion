@@ -67,9 +67,6 @@ sdf_t::interpolate3D(float * vs, point_t alpha){
 point_t
 sdf_t::deformation_at(point_t p){
     point_t v = p / ps->voxel_length;
-   // v -= point_t(0.5f);
-
-
     int x = v.x;
     int y = v.y;
     int z = v.z;
@@ -84,27 +81,6 @@ sdf_t::deformation_at(point_t p){
     }
 
     return deform_field[x][y][z];
-/*
-    float xs[8];
-    float ys[8];
-    float zs[8];
-
-    for (int i = 0; i < 8; i++){
-        int x1 = i & 1 ? x+1 : x;
-        int y1 = i & 2 ? y+1 : y;
-        int z1 = i & 4 ? z+1 : z;
-
-	xs[i] = deform_field[x1][y1][z1].x;
-	ys[i] = deform_field[x1][y1][z1].y;
-	zs[i] = deform_field[x1][y1][z1].z;
-    }
-    
-    point_t alpha = v - point_t(x, y, z);
-    return point_t(
-        interpolate3D(xs, alpha),
-        interpolate3D(ys, alpha),
-        interpolate3D(zs, alpha)
-    );*/
 }
 
 float
@@ -118,7 +94,6 @@ sdf_t::phi_data(int x, int y, float z){
 
 float
 sdf_t::distance_undeformed(point_t p){
-    //retur glm::length( p - point_t(150, 150, 150 + id)) - 100.0f;
     float map = interpolate_sdf(p);
     return std::abs(map - p.z + ps->sdf_eta / 2.0f) - ps->sdf_eta / 2.0f;
 }
@@ -136,24 +111,6 @@ sdf_t::weight(point_t v){
 
 float
 sdf_t::interpolate_sdf(point_t v){
-    /*
-    v /= ps->voxel_length;
-    point_t v1 = point_t((int) v.x, (int) v.y, (int) v.z);
-
-    float vs[8];
-    for (int i = 0; i < 8; i++){
-        point_t v2 = v1;
-	if (i & 1) v2.x += 1;
-	if (i & 2) v2.y += 1;
-	if (i & 4) v2.z += 1;
-
-	v2 *= ps->voxel_length;
-        vs[i] = phi_data(v2.x, v2.y, v2.z);
-    }
-   
-    point_t alpha = v - v1; 
-    return interpolate3D(vs, alpha);
-*/
     point_t v1 = point_t((int) v.x, (int) v.y, (int) v.z);
 
     float vs[8];
@@ -198,27 +155,18 @@ sdf_t::distance_gradient(point_t p){
 }
 
 void
-sdf_t::fuse(bool is_rigid, canon_sdf_t * canon, bool * cont){
-    if (id > 73){
-//	ps->is_multithreaded = false;
-    }
-
+sdf_t::fuse(canon_sdf_t * canon){
     // anonymous function to be evaluated at each voxel
     auto f = [&](int id, int x, int y, int z){
         point_t p = (point_t(x, y, z) + point_t(0.5f)) * ps->voxel_length;
         bool quit = false;
         for (int i = 0; !quit && i < ps->max_iterations; i++){
-
-//	    if (glm::length(deform_field[x][y][z]) > 0.0f) std::cout << "defm:" << glm::to_string(deform_field[x][y][z]) << std::endl;
-            point_t e = is_rigid ? 
-                data_energy(p, canon) :
-                energy(p, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
+            point_t e = energy(p, canon, ps->omega_k, ps->omega_s, ps->gamma, ps->epsilon);
 
             deform_field[x][y][z] -= e * ps->eta;
             
             if (glm::length(e) <= ps->threshold) {
                 quit = true;
-		*cont = true;
             } 
 
             // perform check on deformation field to see if it has diverged
@@ -228,12 +176,6 @@ sdf_t::fuse(bool is_rigid, canon_sdf_t * canon, bool * cont){
           	          << glm::to_string(d) << " at: " << glm::to_string(p) << std::endl;
                 throw -1;
             }
-
-	    
-	//    float max_length = 500.0f;
-	 //   if (glm::length(d) > max_length){
-          //     deform_field[x][y][z] *= max_length / glm::length(d);
-	   // }
 	}
     };
 
@@ -265,78 +207,32 @@ sdf_t::energy(
 ){
     // function that calculates the three components of the energy gradient as 
     // outlined in the killing fusion paper
-   
        	
     auto d = data_energy(v, c);
     auto k = killing_energy(v, gamma) * o_k;
     auto ls = level_set_energy(v, eps) * o_s;
-/*
-    if (id > 73){
-
-    std::cout << "data: " << glm::to_string(d) << std::endl;
-    std::cout << "kill: " << glm::to_string(k) << std::endl;
-    std::cout << "lset: " << glm::to_string(ls) << std::endl << std::endl;
-    }
-  */  
-//    if (std::abs(phi_true(v)) >= ps->delta){
-//	return point_t(0);
-  //  }
-
     return d + k + ls;
-/*
-    return 
-         data_energy(v, c) +
-         killing_energy(v, gamma) * o_k +
-         level_set_energy(v, eps) * o_s;
-*/
+
 }
 
 point_t
 sdf_t::data_energy(point_t p, canon_sdf_t * canon){
     // data component of energy gradient
     // measures how well aligned the two SDFs are
-    point_t g;
-    g = distance_gradient(p);
+    point_t g = distance_gradient(p);
     if (glm::length(g) > 0){
 	g = glm::normalize(g);
     }
-    /*
-    bool pr = g.x != 0 && g.y != 0 && g.z != 0;
 
-    if (pr) std::cout << glm::to_string(g) << " = ";
-
-    
-
-    float l = ps->voxel_length;
-    g = point_t(
-        phi_true(p + point_t(l, 0, 0)) - phi_true(p - point_t(l, 0, 0)),
-        phi_true(p + point_t(0, l, 0)) - phi_true(p - point_t(0, l, 0)),
-        phi_true(p + point_t(0, 0, l)) - phi_true(p - point_t(0, 0, l))
-    ) / (2.0f * l);
-
-    if (pr) std::cout << glm::to_string(g) << std::endl;
-*/
- //   float c = glm::length(p - point_t(150)) - 100.0f;
-  //  c /= ps->delta;
-   // if (c > 1) c = 1;
-    //if (c < -1) c = -1;
-    float c = canon->distance(p);
-
-    auto r = g * (distance(p) - c);
-//    std::cout << "data: " << glm::to_string(r) << std::endl;
-    return r;
+    return g * (distance(p) - canon->distance(p));
 }
 
 point_t
 sdf_t::level_set_energy(point_t p, float epsilon){
     // level set energy gradient component
     // requires the magnitude of the gradient of the SDF to be unity
-    point_t g   = distance_gradient(p);
+    point_t g  = distance_gradient(p);
    
-    if (glm::length(g) == 0){
-	return point_t(0);
-    }
-
     auto phi = [&](point_t v){ return distance(v) * ps->delta; };
     matrix_t h  = matrix_t::hessian(phi, p, ps->voxel_length);
 
@@ -354,8 +250,6 @@ sdf_t::killing_energy(point_t p, float gamma){
     auto E = [&](point_t v){
         matrix_t j = matrix_t::jacobian(psi, v, ps->voxel_length);
 
-//	j.print();
-
         std::vector<float> j_v = j.stack();
         std::vector<float> jt_v = j.transpose().stack();
         
@@ -365,16 +259,11 @@ sdf_t::killing_energy(point_t p, float gamma){
             result += j_v[i] * j_v[i] + gamma * jt_v[i] * j_v[i];
 	}
 
-
-//	if (result > 1) std::cout << result << std::endl;
+        // result clamped to upper bound to attempt to prevent divergence
 	return std::min(result, 25.0f);
     };
 
 
- //   matrix_t j = matrix_t::jacobian(psi, p, ps->voxel_length);
-//    j.print();
-  //  std::vector<float> j_v = j.stack();
-   // std::vector<float> jt_v = j.transpose().stack();
 
     float l = ps->voxel_length;
     auto r = point_t(
@@ -383,10 +272,14 @@ sdf_t::killing_energy(point_t p, float gamma){
         E(p + point_t(0, 0, l)) - E(p - point_t(0, 0, l))
     ) / (2.0f * l);
 
- //   std::cout << "kill: " << glm::to_string(r) << std::endl;
 
     return r;
     /*
+      NOTE: previous version as outlined in the killingfusion paper
+
+ //   matrix_t j = matrix_t::jacobian(psi, p, ps->voxel_length);
+  //  std::vector<float> j_v = j.stack();
+   // std::vector<float> jt_v = j.transpose().stack();
     std::vector<float> v;
     for (int i = 0; i < j_v.size(); i++){
 	v.push_back(jt_v[i] + j_v[i] * gamma);
@@ -402,10 +295,6 @@ sdf_t::killing_energy(point_t p, float gamma){
         matrix_t::hessian(psi_w, p, ps->voxel_length)
     };
 
-    for (int i = 0; i < 3; i++){
-//	h[i].print();
-    }
-
     point_t result;
     for (int i = 0; i < 9; i++){
 	result += point_t(
@@ -416,6 +305,5 @@ sdf_t::killing_energy(point_t p, float gamma){
     }
 
     auto r = result * 2.0f;
-//    std::cout << "kill: " << glm::to_string(r) << std::endl;
     return r;*/
 }

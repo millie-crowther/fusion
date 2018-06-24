@@ -2,8 +2,8 @@ cmake_minimum_required(VERSION 3.5)
 set (CMAKE_CXX_STANDARD 11)
 
 # choose compiler
-set (CMAKE_CXX_COMPILER "/usr/bin/nvcc")
-#set (CMAKE_CXX_COMPILER "/usr/bin/g++")
+#set (CMAKE_CXX_COMPILER "/usr/bin/nvcc")
+set (CMAKE_CXX_COMPILER "/usr/bin/g++")
 
 set (CMAKE_CXX_FLAGS "-pthread -lX11 -Dcimg_display=0")
 

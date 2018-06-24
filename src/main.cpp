@@ -4,13 +4,14 @@
 #include <iostream>
 #include <glm/gtx/string_cast.hpp>
 
+
 int main(){
     fusion_t f;
 
     // declare hyper-parameters for system
     min_params_t ps;
     ps.is_multithreaded = true;
-    ps.frames = 715;
+    ps.frames = 500;
     
     // killing fusion paper part 4.2
     ps.epsilon = 0.00005f;
